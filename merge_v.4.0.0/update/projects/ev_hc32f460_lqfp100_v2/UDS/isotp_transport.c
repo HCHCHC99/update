@@ -1,9 +1,9 @@
 /*******************************************
-* ÎÄ¼þÃû: isotp_transport.c
-* ×÷Õß: AI Assistant
-* °æ±¾: V1.0.0
-* ¹¦ÄÜ: ISO 15765-2 ´«Êä²ãÐ­ÒéÊµÏÖ
-* ±¸×¢: Ö§³Ö³¤±¨ÎÄµÄ·Ö°ü·¢ËÍºÍ½ÓÊÕ
+* ï¿½Ä¼ï¿½ï¿½ï¿½: isotp_transport.c
+* ï¿½ï¿½ï¿½ï¿½: AI Assistant
+* ï¿½æ±¾: V1.0.0
+* ï¿½ï¿½ï¿½ï¿½: ISO 15765-2 ï¿½ï¿½ï¿½ï¿½ï¿½Ð­ï¿½ï¿½Êµï¿½ï¿½
+* ï¿½ï¿½×¢: Ö§ï¿½Ö³ï¿½ï¿½ï¿½ï¿½ÄµÄ·Ö°ï¿½ï¿½ï¿½ï¿½ÍºÍ½ï¿½ï¿½ï¿½
 *******************************************/
 #include "isotp_transport.h"
 #include "can_adapter.h"
@@ -11,49 +11,49 @@
 #include <string.h>
 #include "hz_timer.h"
 
-/***************************** ¾²Ì¬±äÁ¿ ***********************************/
+/***************************** ï¿½ï¿½Ì¬ï¿½ï¿½ï¿½ï¿½ ***********************************/
 
-/* ¾²Ì¬½ÓÊÕ»º³åÇø (8KB) */
+/* ï¿½ï¿½Ì¬ï¿½ï¿½ï¿½Õ»ï¿½ï¿½ï¿½ï¿½ï¿½ (8KB) */
 static uint8_t s_rx_buffer[ISOTP_BUFFER_SIZE];
 
-/* ISO-TP Á¬½ÓÊµÀý (µ¥Á¬½Ó) */
+/* ISO-TP ï¿½ï¿½ï¿½ï¿½Êµï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½) */
 static isotp_connection_t s_isotp_conn;
 
-/* ³õÊ¼»¯±êÖ¾ */
+/* ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½Ö¾ */
 static bool s_isotp_initialized = false;
 
-/* ·¢ËÍµÈ´ý±êÖ¾ (ÓÃÓÚÖ÷Ñ­»·´¦Àí) */
+/* ï¿½ï¿½ï¿½ÍµÈ´ï¿½ï¿½ï¿½Ö¾ (ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ­ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½) */
 static bool s_tx_pending = false;
 
-/***************************** ¾²Ì¬±äÁ¿£¨CAN ID ¹ýÂË¼ÇÂ¼£©****************************/
+/***************************** ï¿½ï¿½Ì¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½CAN ID ï¿½ï¿½ï¿½Ë¼ï¿½Â¼ï¿½ï¿½****************************/
 #if (ISOTP_ENABLE_FILTER_RECORD == 1)
 
-/* ¹Ø×¢µÄ CAN ID ÁÐ±í */
+/* ï¿½ï¿½×¢ï¿½ï¿½ CAN ID ï¿½Ð±ï¿½ */
 static const uint32_t s_filter_can_ids[ISOTP_FILTER_CAN_ID_COUNT] = ISOTP_FILTER_CAN_ID_LIST;
 
-/* ¼ÇÂ¼½á¹¹Ìå£¨¼ò»¯°æ£¬ÎÞÊ±¼ä´Á£©*/
+/* ï¿½ï¿½Â¼ï¿½á¹¹ï¿½å£¨ï¿½ò»¯°æ£¬ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½*/
 typedef struct {
     uint32_t can_id;
     uint8_t  data[8];
     uint8_t  len;
 } filter_record_t;
 
-/* »·ÐÎ¼ÇÂ¼»º³åÇø */
+/* ï¿½ï¿½ï¿½Î¼ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
 static filter_record_t s_filter_records[ISOTP_FILTER_BUFFER_SIZE];
-static uint16_t s_filter_record_index = 0;      /* µ±Ç°Ð´ÈëÎ»ÖÃ */
-static uint32_t s_filter_record_count = 0;      /* ×Ü¼ÇÂ¼´ÎÊý */
+static uint16_t s_filter_record_index = 0;      /* ï¿½ï¿½Ç°Ð´ï¿½ï¿½Î»ï¿½ï¿½ */
+static uint32_t s_filter_record_count = 0;      /* ï¿½Ü¼ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ */
 
-/* ×îºó¼ÇÂ¼£¨·½±ã Keil Watch ¿ìËÙ²é¿´£©*/
+/* ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Keil Watch ï¿½ï¿½ï¿½Ù²é¿´ï¿½ï¿½*/
 static uint32_t s_filter_last_can_id = 0;
 static uint8_t  s_filter_last_data[8] = {0};
 static uint8_t  s_filter_last_len = 0;
 
-/* OTA µ÷ÊÔÐòºÅ¼ÆÊýÆ÷ */
+/* OTA ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¼ï¿½ï¿½ï¿½ï¿½ï¿½ */
 static uint32_t s_ota_seq = 0;
 
 #endif /* ISOTP_ENABLE_FILTER_RECORD */
 
-/***************************** ¾²Ì¬º¯ÊýÉùÃ÷ ***********************************/
+/***************************** ï¿½ï¿½Ì¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ***********************************/
 
 static void isotp_send_flow_control(uint8_t channel, uint32_t dst_id, uint8_t flow_status, 
                                      uint8_t block_size, uint8_t st_min);
@@ -63,12 +63,12 @@ static int8_t isotp_send_consecutive_frame(uint8_t channel, uint32_t dst_id);
 static void isotp_reset_connection(void);
 static void isotp_handle_flow_control_internal(uint8_t flow_status, uint8_t block_size, uint8_t st_min);
 
-/***************************** ¸¨Öúº¯Êý£º´òÓ¡ ****************************/
+/***************************** ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¡ ****************************/
 static void isotp_handle_flow_control_internal(uint8_t flow_status, uint8_t block_size, uint8_t st_min);
 static void isotp_print_ota_frame(uint32_t can_id, uint8_t* data, uint8_t len);
 static void isotp_print_filtered_frame(uint32_t can_id, uint8_t* data, uint8_t len);
 
-/* ´òÓ¡½ÓÊÕµ½µÄCANÖ¡ÏêÏ¸ÐÅÏ¢ */
+/* ï¿½ï¿½Ó¡ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½CANÖ¡ï¿½ï¿½Ï¸ï¿½ï¿½Ï¢ */
 static void isotp_print_rx_frame(uint32_t can_id, uint8_t* frame_data, uint8_t frame_len)
 {
     uint8_t frame_type = frame_data[0] & 0xF0;
@@ -78,13 +78,13 @@ static void isotp_print_rx_frame(uint32_t can_id, uint8_t* frame_data, uint8_t f
     char data_str[64] = {0};
     char temp[8];
     
-    /* ¹¹½¨Êý¾Ý×Ö·û´® */
+    /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ */
     for (i = 0; i < frame_len && i < 8; i++) {
         sprintf(temp, "%02X ", frame_data[i]);
         strcat(data_str, temp);
     }
     
-    /* Ê¶±ðÖ¡ÀàÐÍ */
+    /* Ê¶ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ */
     switch(frame_type) {
         case ISOTP_FRAME_SINGLE:
             sprintf(type_str, "SINGLE");
@@ -105,7 +105,7 @@ static void isotp_print_rx_frame(uint32_t can_id, uint8_t* frame_data, uint8_t f
     
     ISOTP_I("[RX] CAN_ID=0x%08X, Type=%s, Len=%d, Data=%s", can_id, type_str, frame_len, data_str);
     
-    /* ´òÓ¡½âÎöÐÅÏ¢ */
+    /* ï¿½ï¿½Ó¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ */
     if (frame_type == ISOTP_FRAME_SINGLE) {
         ISOTP_D("[RX] Single Frame: DataLen=%d bytes", frame_info);
         if (frame_len > 1) {
@@ -158,7 +158,7 @@ static void isotp_print_rx_frame(uint32_t can_id, uint8_t* frame_data, uint8_t f
     }
 }
 
-/* ´òÓ¡·¢ËÍµÄCANÖ¡ÏêÏ¸ÐÅÏ¢ */
+/* ï¿½ï¿½Ó¡ï¿½ï¿½ï¿½Íµï¿½CANÖ¡ï¿½ï¿½Ï¸ï¿½ï¿½Ï¢ */
 static void isotp_print_tx_frame(uint32_t can_id, uint8_t* frame_data, uint8_t frame_len)
 {
     uint8_t frame_type = frame_data[0] & 0xF0;
@@ -168,13 +168,13 @@ static void isotp_print_tx_frame(uint32_t can_id, uint8_t* frame_data, uint8_t f
     char data_str[64] = {0};
     char temp[8];
     
-    /* ¹¹½¨Êý¾Ý×Ö·û´® */
+    /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ */
     for (i = 0; i < frame_len && i < 8; i++) {
         sprintf(temp, "%02X ", frame_data[i]);
         strcat(data_str, temp);
     }
     
-    /* Ê¶±ðÖ¡ÀàÐÍ */
+    /* Ê¶ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ */
     switch(frame_type) {
         case ISOTP_FRAME_SINGLE:
             sprintf(type_str, "SINGLE");
@@ -196,7 +196,7 @@ static void isotp_print_tx_frame(uint32_t can_id, uint8_t* frame_data, uint8_t f
     ISOTP_I("[TX] CAN_ID=0x%08X, Type=%s, Len=%d, Data=%s", can_id, type_str, frame_len, data_str);
     isotp_print_ota_frame(can_id, frame_data, frame_len);
     
-    /* ´òÓ¡½âÎöÐÅÏ¢ */
+    /* ï¿½ï¿½Ó¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ */
     if (frame_type == ISOTP_FRAME_SINGLE) {
         ISOTP_D("[TX] Single Frame: DataLen=%d bytes", frame_info);
         if (frame_len > 1) {
@@ -249,10 +249,10 @@ static void isotp_print_tx_frame(uint32_t can_id, uint8_t* frame_data, uint8_t f
     }
 }
 
-/***************************** CAN ID ¹ýÂË¼ÇÂ¼¸¨Öúº¯Êý ****************************/
+/***************************** CAN ID ï¿½ï¿½ï¿½Ë¼ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ****************************/
 #if (ISOTP_ENABLE_FILTER_RECORD == 1)
 
-/* ¼ì²é CAN ID ÊÇ·ñÔÚ¹Ø×¢ÁÐ±íÖÐ */
+/* ï¿½ï¿½ï¿½ CAN ID ï¿½Ç·ï¿½ï¿½Ú¹ï¿½×¢ï¿½Ð±ï¿½ï¿½ï¿½ */
 static bool isotp_is_can_id_filtered(uint32_t can_id)
 {
     for (uint8_t i = 0; i < ISOTP_FILTER_CAN_ID_COUNT; i++) {
@@ -263,7 +263,7 @@ static bool isotp_is_can_id_filtered(uint32_t can_id)
     return false;
 }
 
-/* ¼ÇÂ¼ CAN Ö¡µ½»·ÐÎ»º³åÇø£¨¼ò»¯°æ£¬ÎÞÊ±¼ä´Á£©*/
+/* ï¿½ï¿½Â¼ CAN Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ò»¯°æ£¬ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½*/
 static void isotp_record_frame(uint32_t can_id, uint8_t* data, uint8_t len)
 {
     filter_record_t* record = &s_filter_records[s_filter_record_index];
@@ -271,7 +271,7 @@ static void isotp_record_frame(uint32_t can_id, uint8_t* data, uint8_t len)
     record->len = (len > 8) ? 8 : len;
     memcpy(record->data, data, record->len);
     
-    /* ¸üÐÂ×îºó¼ÇÂ¼±äÁ¿£¨·½±ã Keil Watch ²é¿´£©*/
+    /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Keil Watch ï¿½é¿´ï¿½ï¿½*/
     s_filter_last_can_id = can_id;
     s_filter_last_len = (len > 8) ? 8 : len;
     memcpy(s_filter_last_data, data, s_filter_last_len);
@@ -282,64 +282,39 @@ static void isotp_record_frame(uint32_t can_id, uint8_t* data, uint8_t len)
         s_filter_record_index = 0;
     }
     
-    /* OTA µ÷ÊÔ´òÓ¡£¨´øÐòºÅ£© */
+    /* OTA ï¿½ï¿½ï¿½Ô´ï¿½Ó¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å£ï¿½ */
     isotp_print_ota_frame(can_id, data, len);
 }
 
-/* OTA µ÷ÊÔ´òÓ¡£º´øÐòºÅµÄ¹Ø×¢ CAN ID Ö¡ */
-/* OTA RX ×¢ÊÍ¸¨Öúº¯Êý */
+/* OTA ï¿½ï¿½ï¿½Ô´ï¿½Ó¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÅµÄ¹ï¿½×¢ CAN ID Ö¡ */
+/* OTA RX ×¢ï¿½Í¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
 static const char* isotp_ota_annotate(uint32_t can_id, uint8_t* data)
 {
     uint8_t frame_type = data[0] & 0xF0;
+    uint8_t frame_info = data[0] & 0x0F;
 
-    if (can_id == 0x18FF8118) {
-        if (data[0] == 0x01 && data[1] == 0x00) return "<-- Enable";
-        return "";
+    (void)can_id;
+
+    if (frame_type == ISOTP_FRAME_FLOW_CONTROL) {
+        if (frame_info == ISOTP_FC_CTS)      return "<-- FC CTS";
+        if (frame_info == ISOTP_FC_WAIT)     return "<-- FC WAIT";
+        if (frame_info == ISOTP_FC_OVERFLOW) return "<-- FC OVR";
+        return "<-- FC";
     }
-
-    if (can_id == 0x18FF5858) {
-        if (data[0] == 0xFF) return "<-- ForceBL";
-        if (data[0] == 0x01) return "<-- ForceBootAPP1";
-        if (data[0] == 0x02) return "<-- ForceBootAPP2";
-        return "";
-    }
-
-    if (frame_type == ISOTP_FRAME_FLOW_CONTROL) return "<-- FC";
     if (frame_type == ISOTP_FRAME_CONSECUTIVE) return "<-- CF";
-
-    uint8_t sid = (frame_type == ISOTP_FRAME_FIRST) ? data[2] : data[1];
-
-    if (frame_type == ISOTP_FRAME_FIRST) {
-        switch (sid) {
-            case 0x31: return "<-- FF RoutineControl";
-            case 0x36: return "<-- FF TransferData";
-            default:   return "<-- FF";
-        }
-    }
+    if (frame_type == ISOTP_FRAME_FIRST)       return "<-- FF Resp";
 
     if (frame_type == ISOTP_FRAME_SINGLE) {
+        uint8_t sid = data[1];
         switch (sid) {
-            case 0x10: {
-                uint8_t sf = data[2];
-                if (sf == 0x01) return "<-- Session:DEFAULT";
-                if (sf == 0x02) return "<-- Session:PROG";
-                if (sf == 0x03) return "<-- Session:EXT";
-                return "<-- SessionControl";
-            }
-            case 0x11: return "<-- ECUReset";
-            case 0x22: return "<-- ReadById";
-            case 0x27: {
-                uint8_t sf = data[2];
-                if (sf == 0x01) return "<-- ReqSeed";
-                if (sf == 0x02) return "<-- SendKey";
-                return "<-- SecurityAccess";
-            }
-            case 0x2E: return "<-- WriteById";
-            case 0x31: return "<-- RoutineControl";
-            case 0x34: return "<-- RequestDownload";
-            case 0x36: return "<-- TransferData";
-            case 0x37: return "<-- TransferExit";
-            case 0x3E: return "<-- TesterPresent";
+            case 0x50: return "<-- 50 Session";
+            case 0x51: return "<-- 51 ResetACK";
+            case 0x67: return (data[2] == 0x01) ? "<-- 67 Seed" : "<-- 67 KeyOK";
+            case 0x71: return "<-- 71 RoutineACK";
+            case 0x74: return "<-- 74 DlOK";
+            case 0x76: return "<-- 76 BlockACK";
+            case 0x77: return "<-- 77 ExitOK";
+            case 0x7F: return "<-- NRC";
             default:   return "";
         }
     }
@@ -351,17 +326,17 @@ static void isotp_print_ota_frame(uint32_t can_id, uint8_t* data, uint8_t len)
 {
     s_ota_seq++;
     
-    /* »ñÈ¡µ±Ç°Ê±¼ä´Á£¨ºÁÃë£© */
+    /* ï¿½ï¿½È¡ï¿½ï¿½Ç°Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£© */
     uint64_t tick_ms = tickTimer_GetCount();
     uint32_t seconds = (uint32_t)(tick_ms / 1000);
     uint32_t milliseconds = (uint32_t)(tick_ms % 1000);
     
-    /* ÅÐ¶Ï·½Ïò */
+    /* åˆ¤æ–­æ–¹å‘ (å‡çº§å·¥è£…è§†è§’: è¯·æ±‚IDä¸ºå‘é€, å“åº”IDä¸ºæŽ¥æ”¶) */
     const char* direction;
     if (can_id == 0x18DA03F1) {
-        direction = "[RX]";
+        direction = "[TX]";         /* å·¥è£… -> äº§å“ UDSè¯·æ±‚ */
     } else if (can_id == 0x18DAF103) {
-        direction = "[TX]";
+        direction = "[RX]";         /* äº§å“ -> å·¥è£… UDSå“åº” */
     } else if (can_id == 0x18FF8118) {
         direction = "[RX]";
     } else if (can_id == 0x18FF5858) {
@@ -379,7 +354,7 @@ static void isotp_print_ota_frame(uint32_t can_id, uint8_t* data, uint8_t len)
           data[4], data[5], data[6], data[7], ann);
 }
 
-/* ´òÓ¡¹ýÂË¼ÇÂ¼µÄ CAN Ö¡£¨Í³Ò» OTA ¸ñÊ½£©*/
+/* ï¿½ï¿½Ó¡ï¿½ï¿½ï¿½Ë¼ï¿½Â¼ï¿½ï¿½ CAN Ö¡ï¿½ï¿½Í³Ò» OTA ï¿½ï¿½Ê½ï¿½ï¿½*/
 static void isotp_print_filtered_frame(uint32_t can_id, uint8_t* data, uint8_t len)
 {
     isotp_print_ota_frame(can_id, data, len);
@@ -387,9 +362,9 @@ static void isotp_print_filtered_frame(uint32_t can_id, uint8_t* data, uint8_t l
 
 #endif /* ISOTP_ENABLE_FILTER_RECORD */
 
-/***************************** º¯ÊýÊµÏÖ ***********************************/
+/***************************** ï¿½ï¿½ï¿½ï¿½Êµï¿½ï¿½ ***********************************/
 
-/* ÖØÖÃÕû¸öÁ¬½Ó */
+/* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
 static void isotp_reset_connection(void)
 {
     ISOTP_D("Reset connection");
@@ -417,7 +392,7 @@ static void isotp_reset_connection(void)
     s_tx_pending = false;
 }
 
-/* ³õÊ¼»¯ ISO-TP ²ã */
+/* ï¿½ï¿½Ê¼ï¿½ï¿½ ISO-TP ï¿½ï¿½ */
 void isotp_init(uint8_t channel)
 {
     ISOTP_I("=== ISO-TP Init Start ===");
@@ -439,14 +414,14 @@ void isotp_init(uint8_t channel)
     ISOTP_I("=== ISO-TP Init Done ===");
 }
 
-/* 1ms ¶¨Ê±Æ÷¸üÐÂ */
+/* 1ms ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
 void isotp_ms_update(void)
 {
     if (!s_isotp_initialized) {
         return;
     }
     
-    /* ½ÓÊÕ³¬Ê±¼ì²é */
+    /* ï¿½ï¿½ï¿½Õ³ï¿½Ê±ï¿½ï¿½ï¿½ */
     if (s_isotp_conn.rx_state == ISOTP_RX_ACTIVE) {
         if (s_isotp_conn.rx_timeout_counter > 0) {
             s_isotp_conn.rx_timeout_counter--;
@@ -461,7 +436,7 @@ void isotp_ms_update(void)
         }
     }
     
-    /* ·¢ËÍ STmin ÑÓ³Ù´¦Àí */
+    /* ï¿½ï¿½ï¿½ï¿½ STmin ï¿½Ó³Ù´ï¿½ï¿½ï¿½ */
     if (s_isotp_conn.tx_st_min_counter > 0) {
         s_isotp_conn.tx_st_min_counter--;
         if (s_isotp_conn.tx_st_min_counter == 0 && s_isotp_conn.tx_state == ISOTP_TX_SENDING_CF) {
@@ -469,7 +444,7 @@ void isotp_ms_update(void)
         }
     }
     
-    /* ·¢ËÍ³¬Ê±¼ì²é */
+    /* ï¿½ï¿½ï¿½Í³ï¿½Ê±ï¿½ï¿½ï¿½ */
     if (s_isotp_conn.tx_state != ISOTP_TX_IDLE && s_isotp_conn.tx_state != ISOTP_TX_COMPLETE) {
         if (s_isotp_conn.tx_timeout_counter > 0) {
             s_isotp_conn.tx_timeout_counter--;
@@ -482,7 +457,7 @@ void isotp_ms_update(void)
     }
 }
 
-/* ·¢ËÍÁ÷¿ØÖ¡ */
+/* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ */
 static void isotp_send_flow_control(uint8_t channel, uint32_t dst_id, uint8_t flow_status,
                                      uint8_t block_size, uint8_t st_min)
 {
@@ -506,7 +481,7 @@ static void isotp_send_flow_control(uint8_t channel, uint32_t dst_id, uint8_t fl
     ISOTP_D("Send FC: status=%d, BS=%d, STmin=%d", flow_status, block_size, st_min);
 }
 
-/* ·¢ËÍµ¥Ö¡ */
+/* ï¿½ï¿½ï¿½Íµï¿½Ö¡ */
 static int8_t isotp_send_single_frame(uint8_t channel, uint32_t dst_id, uint8_t* data, uint8_t len)
 {
     CAN_TSMT_FRAME_t tx_frame = {0};
@@ -538,7 +513,7 @@ static int8_t isotp_send_single_frame(uint8_t channel, uint32_t dst_id, uint8_t*
     return ISOTP_OK;
 }
 
-/* ·¢ËÍÊ×Ö¡ */
+/* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ */
 static int8_t isotp_send_first_frame(uint8_t channel, uint32_t dst_id, uint8_t* data, uint16_t len)
 {
     CAN_TSMT_FRAME_t tx_frame = {0};
@@ -571,7 +546,7 @@ static int8_t isotp_send_first_frame(uint8_t channel, uint32_t dst_id, uint8_t* 
     return ISOTP_OK;
 }
 
-/* ·¢ËÍÁ¬ÐøÖ¡ */
+/* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ */
 static int8_t isotp_send_consecutive_frame(uint8_t channel, uint32_t dst_id)
 {
     CAN_TSMT_FRAME_t tx_frame = {0};
@@ -605,7 +580,7 @@ static int8_t isotp_send_consecutive_frame(uint8_t channel, uint32_t dst_id)
     return ISOTP_OK;
 }
 
-/* ÄÚ²¿Á÷¿Ø´¦Àíº¯Êý */
+/* ï¿½Ú²ï¿½ï¿½ï¿½ï¿½Ø´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
 static void isotp_handle_flow_control_internal(uint8_t flow_status, uint8_t block_size, uint8_t st_min)
 {
     ISOTP_D("Handle FC internal: tx_state=%d, flow_status=%d", s_isotp_conn.tx_state, flow_status);
@@ -630,7 +605,7 @@ static void isotp_handle_flow_control_internal(uint8_t flow_status, uint8_t bloc
     }
 }
 
-/* ½ÓÊÕ CAN Ö¡´¦Àí */
+/* ï¿½ï¿½ï¿½ï¿½ CAN Ö¡ï¿½ï¿½ï¿½ï¿½ */
 int8_t isotp_receive_frame(uint8_t channel, uint32_t can_id, uint8_t* frame_data,
                             uint8_t frame_len, uint8_t* out_data, uint16_t* out_len)
 {
@@ -638,7 +613,7 @@ int8_t isotp_receive_frame(uint8_t channel, uint32_t can_id, uint8_t* frame_data
         return ISOTP_ERROR;
     }
 
-    /* ==================== CAN ID ¹ýÂË¼ÇÂ¼ ==================== */
+    /* ==================== CAN ID ï¿½ï¿½ï¿½Ë¼ï¿½Â¼ ==================== */
 #if (ISOTP_ENABLE_FILTER_RECORD == 1)
     if (isotp_is_can_id_filtered(can_id)) {
         isotp_record_frame(can_id, frame_data, frame_len);
@@ -647,7 +622,7 @@ int8_t isotp_receive_frame(uint8_t channel, uint32_t can_id, uint8_t* frame_data
     }
 #endif
 
-    /* ==================== ÌØÊâÖ¡¼ì²â ==================== */
+    /* ==================== ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ ==================== */
     if (can_id == 0x18DA03F1 && frame_len >= 8)
     {
         if (frame_data[0] == 0x24 && 
@@ -663,13 +638,13 @@ int8_t isotp_receive_frame(uint8_t channel, uint32_t can_id, uint8_t* frame_data
         }
     }
 
-    /* ´òÓ¡½ÓÊÕµ½µÄÖ¡ÐÅÏ¢ */
+    /* ï¿½ï¿½Ó¡ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½Ö¡ï¿½ï¿½Ï¢ */
     isotp_print_rx_frame(can_id, frame_data, frame_len);
     
     uint8_t frame_type = frame_data[0] & 0xF0;
     uint8_t frame_info = frame_data[0] & 0x0F;
     
-    /* Á÷¿ØÖ¡´¦Àí - ·ÅÔÚ×îÇ°Ãæ£¬²»ÒÀÀµ½ÓÊÕ×´Ì¬ */
+    /* ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ - ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½æ£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬ */
     if (frame_type == ISOTP_FRAME_FLOW_CONTROL) {
         uint8_t flow_status = frame_info;
         uint8_t block_size = frame_data[1];
@@ -681,7 +656,7 @@ int8_t isotp_receive_frame(uint8_t channel, uint32_t can_id, uint8_t* frame_data
     
     if (s_isotp_conn.rx_state == ISOTP_RX_IDLE) {
         
-        /* µ¥Ö¡´¦Àí */
+        /* ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ */
         if (frame_type == ISOTP_FRAME_SINGLE) {
             uint8_t sf_len = frame_info;
             if (sf_len > frame_len - 1) {
@@ -695,7 +670,7 @@ int8_t isotp_receive_frame(uint8_t channel, uint32_t can_id, uint8_t* frame_data
             return ISOTP_OK;
         }
         
-        /* Ê×Ö¡´¦Àí */
+        /* ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ */
         if (frame_type == ISOTP_FRAME_FIRST) {
             s_isotp_conn.rx_total_len = (frame_info << 8) | frame_data[1];
             
@@ -711,7 +686,7 @@ int8_t isotp_receive_frame(uint8_t channel, uint32_t can_id, uint8_t* frame_data
             s_isotp_conn.rx_state = ISOTP_RX_ACTIVE;
             s_isotp_conn.rx_src_id = can_id;
             s_isotp_conn.rx_received_len = 0;
-            s_isotp_conn.rx_expected_seq = 1;   /* µÚÒ»¸öÁ¬ÐøÖ¡ÆÚÍûÐòÁÐºÅÎª 1 */
+            s_isotp_conn.rx_expected_seq = 1;   /* ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ðºï¿½Îª 1 */
             s_isotp_conn.rx_cf_count_in_block = 0;
             s_isotp_conn.rx_timeout_counter = s_isotp_conn.timeout_ms;
             
@@ -747,7 +722,7 @@ int8_t isotp_receive_frame(uint8_t channel, uint32_t can_id, uint8_t* frame_data
         return ISOTP_ERROR;
     }
     
-    /* ½ÓÊÕÖÐ×´Ì¬£¬´¦ÀíÁ¬ÐøÖ¡ */
+    /* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ */
     if (s_isotp_conn.rx_state == ISOTP_RX_ACTIVE) {
         
         if (can_id != s_isotp_conn.rx_src_id) {
@@ -805,14 +780,14 @@ int8_t isotp_receive_frame(uint8_t channel, uint32_t can_id, uint8_t* frame_data
             return ISOTP_OK;
         }
         
-        /* »¹Ã»ÊÕÆëÊý¾Ý£¬·µ»Ø BUSY */
+        /* ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý£ï¿½ï¿½ï¿½ï¿½ï¿½ BUSY */
         return ISOTP_BUSY;
     }
     
     return ISOTP_ERROR;
 }
 
-/* ·¢ËÍÍêÕûÏûÏ¢ */
+/* ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ */
 int8_t isotp_send_message(uint8_t channel, uint32_t dst_id, uint8_t* data, uint16_t len)
 {
     if (!s_isotp_initialized) {
@@ -830,7 +805,7 @@ int8_t isotp_send_message(uint8_t channel, uint32_t dst_id, uint8_t* data, uint1
     
     ISOTP_I("[TX] Send message: dst_id=0x%08X, len=%d", dst_id, len);
     
-    /* ´òÓ¡Òª·¢ËÍµÄÊý¾ÝÄÚÈÝ */
+    /* ï¿½ï¿½Ó¡Òªï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
     ISOTP_D("[TX] Data to send: ");
     for (uint16_t i = 0; i < len && i < 16; i++) {
         ISOTP_D("[TX]   data[%d]=0x%02X", i, data[i]);
@@ -866,7 +841,7 @@ int8_t isotp_send_message(uint8_t channel, uint32_t dst_id, uint8_t* data, uint1
     return ISOTP_BUSY;
 }
 
-/* ·¢ËÍ´¦Àíº¯Êý */
+/* ï¿½ï¿½ï¿½Í´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
 void isotp_tx_process(void)
 {
     if (!s_isotp_initialized) {
@@ -915,7 +890,7 @@ void isotp_tx_process(void)
     }
 }
 
-/* ÖØÖÃ½ÓÊÕ×´Ì¬ */
+/* ï¿½ï¿½ï¿½Ã½ï¿½ï¿½ï¿½×´Ì¬ */
 void isotp_reset_rx(void)
 {
     ISOTP_D("Reset RX");
@@ -926,7 +901,7 @@ void isotp_reset_rx(void)
     s_isotp_conn.rx_cf_count_in_block = 0;
 }
 
-/* ÖØÖÃ·¢ËÍ×´Ì¬ */
+/* ï¿½ï¿½ï¿½Ã·ï¿½ï¿½ï¿½×´Ì¬ */
 void isotp_reset_tx(void)
 {
     ISOTP_D("Reset TX");
@@ -940,25 +915,25 @@ void isotp_reset_tx(void)
     s_tx_pending = false;
 }
 
-/* »ñÈ¡µ±Ç°½ÓÊÕ×´Ì¬ */
+/* ï¿½ï¿½È¡ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½×´Ì¬ */
 isotp_rx_state_t isotp_get_rx_state(void)
 {
     return s_isotp_conn.rx_state;
 }
 
-/* »ñÈ¡µ±Ç°·¢ËÍ×´Ì¬ */
+/* ï¿½ï¿½È¡ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½×´Ì¬ */
 isotp_tx_state_t isotp_get_tx_state(void)
 {
     return s_isotp_conn.tx_state;
 }
 
-/* Íâ²¿½Ó¿Ú£º´¦Àí½ÓÊÕµ½µÄÁ÷¿ØÖ¡ */
+/* ï¿½â²¿ï¿½Ó¿Ú£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¡ */
 void isotp_handle_flow_control(uint8_t flow_status, uint8_t block_size, uint8_t st_min)
 {
     isotp_handle_flow_control_internal(flow_status, block_size, st_min);
 }
 
-/***************************** CAN ID ¹ýÂË¼ÇÂ¼µ÷ÊÔ½Ó¿ÚÊµÏÖ ****************************/
+/***************************** CAN ID ï¿½ï¿½ï¿½Ë¼ï¿½Â¼ï¿½ï¿½ï¿½Ô½Ó¿ï¿½Êµï¿½ï¿½ ****************************/
 #if (ISOTP_ENABLE_FILTER_RECORD == 1)
 
 uint32_t isotp_get_filter_record_count(void)
@@ -985,7 +960,7 @@ bool isotp_get_filter_record(uint16_t index, uint32_t* can_id, uint8_t* data, ui
         return false;
     }
     
-    /* ¼ÆËãÊµ¼ÊÎ»ÖÃ£º×îÐÂµÄÊÇ s_filter_record_index - 1£¬ÍùÇ°ÍÆ index ¸ö */
+    /* ï¿½ï¿½ï¿½ï¿½Êµï¿½ï¿½Î»ï¿½Ã£ï¿½ï¿½ï¿½ï¿½Âµï¿½ï¿½ï¿½ s_filter_record_index - 1ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½ index ï¿½ï¿½ */
     uint16_t record_idx;
     if (s_filter_record_index >= index + 1) {
         record_idx = s_filter_record_index - 1 - index;

@@ -918,6 +918,16 @@
               <FileType>1</FileType>
               <FilePath>..\..\UDS\uds_ota.c</FilePath>
             </File>
+            <File>
+              <FileName>uds_tester.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\UDS\uds_tester.c</FilePath>
+            </File>
+            <File>
+              <FileName>upgrade_tool.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\UDS\upgrade_tool.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1843,6 +1853,16 @@
               <FileName>uds_ota.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\UDS\uds_ota.c</FilePath>
+            </File>
+            <File>
+              <FileName>uds_tester.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\UDS\uds_tester.c</FilePath>
+            </File>
+            <File>
+              <FileName>upgrade_tool.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\UDS\upgrade_tool.c</FilePath>
             </File>
           </Files>
         </Group>

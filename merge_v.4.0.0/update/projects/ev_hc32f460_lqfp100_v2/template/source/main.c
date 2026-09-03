@@ -15,9 +15,7 @@
   #include "rtt_manager.h"
   #include "Pwm.h"
   #include "hc32_ll_utility.h"
-#if UDS_CAN_ENABLE
-  #include "uds_ota.h"
-#endif
+  #include "upgrade_tool.h"
 #include "Bootloader_App.h"
 
 
@@ -109,27 +107,21 @@
    *=============================================================================*/
 
 /*=============================================================================
- * Bootloader 固件 (起始地址 0x00000000)
+ * 升级工装固件 (单一固件直接运行, 不跳转 APP)
+ * 固件镜像存放在本片 0x44000 起始 168KB, 由 Keil/JFlash 单独烧录
  *=============================================================================*/
 int main(void)
 {
     Hardware_Init();
-    MAIN_D("===== main(): BOOTLOADER PATH =====\r\n");
-    
-    /* PB6 phase indicator moved to UDS phase handlers (Phase1/2/3) */
+    MAIN_D("===== main(): UPGRADE TOOL PATH =====\r\n");
 
-#if UDS_CAN_ENABLE
-    UdsOta_Init();
-#endif
-    
-    Boot_StartupSequence();
-    
+    /* 上电自动启动心跳监听与升级流程 */
+    Tool_Init();
+
     {
         while (1)
         {
-#if UDS_CAN_ENABLE
-            UdsOta_Poll();
-#endif
+            Tool_Poll();
         }
     }
 }
