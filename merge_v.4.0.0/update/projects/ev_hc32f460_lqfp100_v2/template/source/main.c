@@ -110,11 +110,12 @@
  * 升级工装固件 (单一固件直接运行, 不跳转 APP)
  * 固件镜像存放在本片 0x44000 起始 168KB, 由 Keil/JFlash 单独烧录
  *=============================================================================*/
+volatile int gtest = 0;
 int main(void)
 {
     Hardware_Init();
     MAIN_D("===== main(): UPGRADE TOOL PATH =====\r\n");
-
+  	while(gtest==0){}
     /* 上电自动启动心跳监听与升级流程 */
     Tool_Init();
 

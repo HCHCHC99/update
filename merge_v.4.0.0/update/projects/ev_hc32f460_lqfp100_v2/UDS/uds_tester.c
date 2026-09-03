@@ -46,12 +46,10 @@ static tool_txn_state_t s_state = TOOL_TXN_IDLE;
 static tool_txn_err_t   s_err = TOOL_TXN_ERR_NONE;
 static uint8_t          s_nrc = 0;
 
-/* 定时/重试 */
-static uint32_t s_p2_ms = 0;            /* P2 计时 */
-static uint32_t s_retry_delay_ms = 0;   /* 0x22 重试倒计时 */
-static uint8_t  s_nrc22_retries = 0;    /* 0x22 已重试次数 */
-
-static uint64_t s_last_ms_tick = 0;
+/* 定时/重试 (TickTimer 非阻塞延时模块) */
+static NonBlockingDelay_t s_p2_tmr;         /* P2 响应超时 */
+static NonBlockingDelay_t s_retry_tmr;      /* 0x22 重试倒计时 */
+static uint8_t  s_nrc22_retries = 0;        /* 0x22 已重试次数 */
 
 /***************************** 内部函数 ***********************************/
 
@@ -78,11 +76,9 @@ static void handle_uds_message(const uint8_t *buf, uint16_t len)
             return;
         }
         s_nrc = buf[2];
-        TOOL_W("NRC 0x%02X for SID 0x%02X", s_nrc, s_req_buf[0]);
-
         if (s_nrc == 0x78U) {
-            /* responsePending: 重置 P2 继续等待, 无上限 */
-            s_p2_ms = 0;
+            /* responsePending: 重启 P2 继续等待, 无上限 */
+            nbDelay_Start(&s_p2_tmr);
             return;
         }
         if (s_nrc == 0x22U) {
@@ -92,7 +88,7 @@ static void handle_uds_message(const uint8_t *buf, uint16_t len)
                 TOOL_W("NRC 0x22, retry %d/%d after %d ms",
                        s_nrc22_retries, TOOL_NRC22_RETRY_MAX, (int)TOOL_NRC22_RETRY_DELAY_MS);
                 s_state = TOOL_TXN_WAIT_RETRY;
-                s_retry_delay_ms = TOOL_NRC22_RETRY_DELAY_MS;
+                nbDelay_Start(&s_retry_tmr);
             } else {
                 TOOL_E("NRC 0x22 retries exhausted");
                 txn_finish(TOOL_TXN_ERR, TOOL_TXN_ERR_NRC22_RETRY);
@@ -109,16 +105,15 @@ static void handle_uds_message(const uint8_t *buf, uint16_t len)
         return;
     }
 
-    /* ---- 肯定响应 (SID + 0x40) ---- */
+    /* ---- 肯定响应 (SID = 请求SID + 0x40) ---- */
     if ((s_state == TOOL_TXN_WAIT_RESP) &&
-        ((buf[0] & 0x7FU) == s_req_buf[0]) && ((buf[0] & 0x40U) != 0U)) {
+        ((buf[0] & 0x7FU) == (uint8_t)(s_req_buf[0] + 0x40U)) && ((buf[0] & 0x40U) != 0U)) {
         uint16_t payload = (uint16_t)(len - 1U);
         if (payload > sizeof(s_resp_data)) {
             payload = sizeof(s_resp_data);
         }
         memcpy(s_resp_data, &buf[1], payload);
         s_resp_data_len = payload;
-        TOOL_T("Positive resp SID 0x%02X, payload %d bytes", s_req_buf[0], payload);
         txn_finish(TOOL_TXN_OK, TOOL_TXN_ERR_NONE);
         return;
     }
@@ -143,30 +138,22 @@ void UdsTester_Init(void)
     s_resp_data_len = 0;
     s_unsol_flag = 0;
     s_nrc22_retries = 0;
-    s_last_ms_tick = tickTimer_GetCount();
+    nbDelay_Init(&s_p2_tmr, TOOL_TIMEOUT_P2_MS);
+    nbDelay_Init(&s_retry_tmr, TOOL_NRC22_RETRY_DELAY_MS);
     TOOL_T("UDS Tester init done");
 }
 
 void UdsTester_Poll(void)
 {
-    uint64_t now = tickTimer_GetCount();
-
-    if (now == s_last_ms_tick) {
-        return;
-    }
-    s_last_ms_tick = now;
-
     if (s_state == TOOL_TXN_WAIT_RESP) {
-        s_p2_ms++;
-        if (s_p2_ms >= TOOL_TIMEOUT_P2_MS) {
+        if (nbDelay_IsComplete(&s_p2_tmr)) {
             TOOL_E("P2 timeout (%d ms), SID 0x%02X", (int)TOOL_TIMEOUT_P2_MS, s_req_buf[0]);
             txn_finish(TOOL_TXN_ERR, TOOL_TXN_ERR_TIMEOUT);
         }
     } else if (s_state == TOOL_TXN_WAIT_RETRY) {
-        s_retry_delay_ms--;
-        if (s_retry_delay_ms == 0U) {
+        if (nbDelay_IsComplete(&s_retry_tmr)) {
             /* 重发原请求 */
-            s_p2_ms = 0;
+            nbDelay_Start(&s_p2_tmr);
             s_state = TOOL_TXN_WAIT_RESP;
             if (isotp_send_message(0, TOOL_CANID_UDS_REQUEST, s_req_buf, s_req_len) == ISOTP_ERROR) {
                 TOOL_E("Retry send failed");
@@ -207,7 +194,7 @@ int8_t UdsTester_Request(const uint8_t *req, uint16_t len)
     memcpy(s_req_buf, req, len);
     s_req_len = len;
     s_nrc22_retries = 0;
-    s_p2_ms = 0;
+    nbDelay_Start(&s_p2_tmr);
     s_resp_data_len = 0;
     s_state = TOOL_TXN_WAIT_RESP;
 

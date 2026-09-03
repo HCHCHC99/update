@@ -288,33 +288,75 @@ static void isotp_record_frame(uint32_t can_id, uint8_t* data, uint8_t len)
 
 /* OTA ���Դ�ӡ������ŵĹ�ע CAN ID ֡ */
 /* OTA RX ע�͸������� */
+static const char* isotp_nrc_name(uint8_t nrc)
+{
+    switch (nrc) {
+        case 0x11: return "servNotSup";
+        case 0x12: return "subNotSup";
+        case 0x13: return "lenInvalid";
+        case 0x22: return "condNotOK";
+        case 0x24: return "reqSeqErr";
+        case 0x31: return "rangeErr";
+        case 0x33: return "secDenied";
+        case 0x35: return "keyInvalid";
+        case 0x36: return "exceedTry";
+        case 0x72: return "progFail";
+        case 0x78: return "pending";
+        default:   return "";
+    }
+}
+
 static const char* isotp_ota_annotate(uint32_t can_id, uint8_t* data)
 {
     uint8_t frame_type = data[0] & 0xF0;
     uint8_t frame_info = data[0] & 0x0F;
+    const uint8_t* p = &data[1];    /* SF 的 UDS payload 起始 (FF 为 data[2]) */
+    static char s_buf[28];          /* 含变量字段的注解 (块号/NRC 名) */
 
-    (void)can_id;
+    if (can_id == 0x18DA03F1) {
+        /* ---- 工装 -> 产品 请求 ---- */
+        if (frame_type == ISOTP_FRAME_CONSECUTIVE)  return "36 cont";
+        if (frame_type == ISOTP_FRAME_FLOW_CONTROL) return "";
+        if (frame_type == ISOTP_FRAME_FIRST) {
+            p = &data[2];   /* FF: byte1 是长度低字节, UDS payload 从 byte2 起 */
+        }
+        switch (p[0]) {
+            case 0x10: return (p[1] == 0x03U) ? "10 03 extSess" : "10 02 progSess";
+            case 0x27: return (p[1] == 0x01U) ? "27 01 reqSeed" : "27 02 sendKey";
+            case 0x31: return "31 FF02 enterBL";
+            case 0x34: return "34 dlReq";
+            case 0x36:
+                sprintf(s_buf, "36 blk seq=%02X", p[1]);
+                return s_buf;
+            case 0x37: return "37 txExit";
+            case 0x11: return "11 01 ecuReset";
+            default:   return "";
+        }
+    }
 
+    /* ---- 产品 -> 工装 响应 ---- */
     if (frame_type == ISOTP_FRAME_FLOW_CONTROL) {
         if (frame_info == ISOTP_FC_CTS)      return "<-- FC CTS";
         if (frame_info == ISOTP_FC_WAIT)     return "<-- FC WAIT";
         if (frame_info == ISOTP_FC_OVERFLOW) return "<-- FC OVR";
         return "<-- FC";
     }
-    if (frame_type == ISOTP_FRAME_CONSECUTIVE) return "<-- CF";
+    if (frame_type == ISOTP_FRAME_CONSECUTIVE) return "<-- 76 cont";
     if (frame_type == ISOTP_FRAME_FIRST)       return "<-- FF Resp";
 
     if (frame_type == ISOTP_FRAME_SINGLE) {
         uint8_t sid = data[1];
         switch (sid) {
-            case 0x50: return "<-- 50 Session";
+            case 0x50: return (data[2] == 0x03U) ? "<-- 50 extSessOK" : "<-- 50 progSessOK";
             case 0x51: return "<-- 51 ResetACK";
-            case 0x67: return (data[2] == 0x01) ? "<-- 67 Seed" : "<-- 67 KeyOK";
-            case 0x71: return "<-- 71 RoutineACK";
+            case 0x67: return (data[2] == 0x01U) ? "<-- 67 Seed" : "<-- 67 KeyOK";
+            case 0x71: return (data[3] == 0xFFU) ? "<-- 71 bootReady" : "<-- 71 RoutineACK";
             case 0x74: return "<-- 74 DlOK";
             case 0x76: return "<-- 76 BlockACK";
             case 0x77: return "<-- 77 ExitOK";
-            case 0x7F: return "<-- NRC";
+            case 0x7F:
+                sprintf(s_buf, "<-- NRC %02X %s", data[3], isotp_nrc_name(data[3]));
+                return s_buf;
             default:   return "";
         }
     }
@@ -347,7 +389,7 @@ static void isotp_print_ota_frame(uint32_t can_id, uint8_t* data, uint8_t len)
         direction = "[--]";
     }
     
-    const char* ann = (direction[1] == 'R') ? isotp_ota_annotate(can_id, data) : "";
+    const char* ann = isotp_ota_annotate(can_id, data);
     OTA_I("seq=%-4d, time=%3u.%03us, %s 0x%08X, %02X %02X %02X %02X %02X %02X %02X %02X %s",
           s_ota_seq, seconds, milliseconds, direction, can_id,
           data[0], data[1], data[2], data[3],

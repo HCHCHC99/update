@@ -73,10 +73,6 @@ static uint16_t s_blk_len = 0;          /* 当前块长度 */
 
 /* 流程级重试 */
 static uint8_t  s_flow_retry = 0;
-static uint32_t s_retry_delay_ms = 0;
-
-/* 阶段超时计时 (WAIT_BOOT / WAIT_5101) */
-static uint32_t s_stage_ms = 0;
 
 /* 心跳 */
 static volatile uint8_t s_hb_flag = 0;
@@ -86,9 +82,11 @@ static volatile uint8_t s_hb_ver = 0;
 static uint8_t s_rpt_step = 0xFFU;      /* 上次上报值 (0xFF 强制首发) */
 static uint8_t s_rpt_param = 0;
 static uint8_t s_rpt_detail = 0;
-static uint32_t s_rpt_period_ms = 0;
 
-static uint64_t s_last_ms_tick = 0;
+/* 非阻塞延时器 (TickTimer 模块) */
+static NonBlockingDelay_t s_flow_retry_tmr;  /* 整流程失败重试延时 */
+static NonBlockingDelay_t s_stage_tmr;       /* WAIT_BOOT / WAIT_5101 阶段超时 */
+static NonBlockingDelay_t s_poll_tmr;        /* 1ms 轮询门控 */
 
 /***************************** 步骤上报 ***********************************/
 
@@ -116,23 +114,16 @@ static void status_send(void)
           s_rpt_step, s_rpt_param, s_rpt_detail, s_rpt_step, s_rpt_param, s_rpt_detail);
 }
 
-/* 更新步骤码: 变化立即发送, 不变时 1s 周期发送 */
+/* 更新步骤码: 内容变化时发送一次, 不变不重发 */
 static void status_report(uint8_t step, uint8_t param, uint8_t detail)
 {
+    if ((step == s_rpt_step) && (param == s_rpt_param) && (detail == s_rpt_detail)) {
+        return;                     /* 与上次上报相同, 不重发 */
+    }
     s_rpt_step = step;
     s_rpt_param = param;
     s_rpt_detail = detail;
-    s_rpt_period_ms = 0;
     status_send();
-}
-
-static void status_poll_1ms(void)
-{
-    s_rpt_period_ms++;
-    if (s_rpt_period_ms >= 1000U) {
-        s_rpt_period_ms = 0;
-        status_send();
-    }
 }
 
 /***************************** 心跳接收 ***********************************/
@@ -140,12 +131,9 @@ static void status_poll_1ms(void)
 static void Hb_RxCallback(const CanMsg_t *msg)
 {
     if ((msg != NULL) && (msg->u8DLC > TOOL_HB_VER_BYTE_IDX)) {
+        /* 心跳帧 1s 一条, 打印量太大且会挤掉 RTT 其他日志, 不打印 */
         s_hb_ver = msg->au8Data[TOOL_HB_VER_BYTE_IDX];
         s_hb_flag = 1U;
-        OTA_I("[RX] 0x18FF1108, %02X %02X %02X %02X %02X %02X %02X %02X <-- Heartbeat ver=0x%02X",
-              msg->au8Data[0], msg->au8Data[1], msg->au8Data[2], msg->au8Data[3],
-              msg->au8Data[4], msg->au8Data[5], msg->au8Data[6], msg->au8Data[7],
-              s_hb_ver);
     }
 }
 
@@ -156,7 +144,22 @@ static void goto_state(tool_state_t st)
 {
     s_state = st;
     s_req_sent = 0;
-    s_stage_ms = 0;
+    s_unlock_sub = 0;       /* 每次进入新状态都从 27 01 重新开始解锁流程 */
+
+    /* 阶段超时: 按目标状态配置 */
+    switch (st) {
+        case TOOL_ST_WAIT_BOOT:
+            nbDelay_SetTime(&s_stage_tmr, TOOL_TIMEOUT_BOOT_READY_MS);
+            nbDelay_Start(&s_stage_tmr);
+            break;
+        case TOOL_ST_WAIT_5101:
+            nbDelay_SetTime(&s_stage_tmr, TOOL_TIMEOUT_RESET_ACK_MS);
+            nbDelay_Start(&s_stage_tmr);
+            break;
+        default:
+            nbDelay_Stop(&s_stage_tmr);
+            break;
+    }
 }
 
 /* NRC 0x33 恢复: 回到解锁步骤, 成功后回到 resume_state 重发请求 */
@@ -181,7 +184,7 @@ static void flow_fail(uint8_t err_code, uint8_t detail)
         TOOL_W("Flow failed (err=0x%02X detail=0x%02X), retry %d/%d in %d ms",
                err_code, detail, s_flow_retry, TOOL_FLOW_RETRY_MAX, (int)TOOL_FLOW_RETRY_DELAY_MS);
         status_report(TOOL_STEP_ERROR, err_code, detail);
-        s_retry_delay_ms = TOOL_FLOW_RETRY_DELAY_MS;
+        nbDelay_Start(&s_flow_retry_tmr);
         s_state = TOOL_ST_RETRY_DELAY;
     }
 }
@@ -211,7 +214,7 @@ static void st_listen(void)
             TOOL_I("Upgrade triggered: product ver=0x%02X < tool ver=0x%02X", s_hb_ver, TOOL_FW_VERSION);
             status_report(TOOL_STEP_VERSION_OK, s_hb_ver, 0U);
             s_in_boot = 0;
-            s_flow_retry = 0;
+            /* 注意: s_flow_retry 不在此清零, 保证整流程失败 x2 后真正停机 */
             goto_state(TOOL_ST_EXT_SESSION);
         }
     }
@@ -226,10 +229,8 @@ static void st_unlock(void)
 
     if (s_req_sent == 0U) {
         if (s_unlock_sub == 0U) {
-            TOOL_I("Request seed (27 01)");
             s_req_sent = (UdsTester_ReqSeed() == 0) ? 1U : 0U;
         } else {
-            TOOL_I("Send key (27 02)");
             s_req_sent = (UdsTester_SendKey(s_seed) == 0) ? 1U : 0U;
         }
         return;
@@ -242,7 +243,6 @@ static void st_unlock(void)
             /* 67 01 负载: {01 s1 s2 s3 s4} */
             if (resp_len >= 5U) {
                 memcpy(s_seed, &resp[1], 4);
-                TOOL_I("Seed received: %02X %02X %02X %02X", s_seed[0], s_seed[1], s_seed[2], s_seed[3]);
                 s_unlock_sub = 1U;
                 s_req_sent = 0;
             } else {
@@ -250,7 +250,6 @@ static void st_unlock(void)
                 flow_fail(TOOL_ERR_NRC, 0U);
             }
         } else {
-            TOOL_I("Security unlocked");
             if (s_state == TOOL_ST_UNLOCK_APP) {
                 goto_state(TOOL_ST_JUMP_BOOT);
             } else {
@@ -285,7 +284,6 @@ static void st_ext_session(void)
     tool_txn_state_t txn = UdsTester_TxnState();
 
     if (s_req_sent == 0U) {
-        TOOL_I("Step: extended session (10 03)");
         status_report(TOOL_STEP_EXT_SESSION, 0U, 0U);
         s_req_sent = (UdsTester_ReqSession(0x03U) == 0) ? 1U : 0U;
         return;
@@ -314,17 +312,17 @@ static void st_jump_boot(void)
     tool_txn_state_t txn = UdsTester_TxnState();
 
     if (s_req_sent == 0U) {
-        TOOL_I("Step: request enter bootloader (31 FF 02)");
         status_report(TOOL_STEP_JUMP_BOOT, 0U, 0U);
         s_req_sent = (UdsTester_ReqRoutineCtrl(0xFF02U, 0x01U) == 0) ? 1U : 0U;
         return;
     }
 
     if (txn == TOOL_TXN_OK) {
-        /* APP 上下文正常无响应, 若收到响应也继续 */
+        /* 肯定响应 (71 01 FF 00, 负载在 SID 之后) = boot 已就绪, 直接进入编程会话 */
         UdsTester_ResetTxn();
         s_in_boot = 1U;
-        goto_state(TOOL_ST_WAIT_BOOT);
+        status_report(TOOL_STEP_PROG_SESSION, 0U, 0U);
+        goto_state(TOOL_ST_PROG_SESSION);
     } else if (txn == TOOL_TXN_ERR) {
         tool_txn_err_t err = UdsTester_TxnError();
         UdsTester_ResetTxn();
@@ -348,14 +346,13 @@ static void st_wait_boot(void)
     uint8_t sid = unsolicited_sid();
 
     if (sid == 0x71U) {
-        TOOL_I("Boot ready (71 01 FF 00)");
         status_report(TOOL_STEP_PROG_SESSION, 0U, 0U);
         goto_state(TOOL_ST_PROG_SESSION);
         return;
     }
 
-    s_stage_ms++;
-    if (s_stage_ms >= TOOL_TIMEOUT_BOOT_READY_MS) {
+    /* s_stage_tmr 在 goto_state 进入 WAIT_BOOT 时启动 */
+    if (nbDelay_IsComplete(&s_stage_tmr)) {
         flow_fail(TOOL_ERR_BOOT_READY_TIMEOUT, 0U);
     }
 }
@@ -365,7 +362,6 @@ static void st_prog_session(void)
     tool_txn_state_t txn = UdsTester_TxnState();
 
     if (s_req_sent == 0U) {
-        TOOL_I("Step: programming session (10 02)");
         s_req_sent = (UdsTester_ReqSession(0x02U) == 0) ? 1U : 0U;
         return;
     }
@@ -395,7 +391,6 @@ static void st_dl_req(void)
     uint16_t resp_len = 0;
 
     if (s_req_sent == 0U) {
-        TOOL_I("Step: request download (34), addr=0x%08X size=%d", TOOL_DL_ADDR, (int)TOOL_FW_SIZE);
         status_report(TOOL_STEP_DOWNLOAD, 0U, 0U);
         s_req_sent = (UdsTester_ReqDownload(TOOL_DL_ADDR, TOOL_FW_SIZE) == 0) ? 1U : 0U;
         return;
@@ -439,10 +434,6 @@ static void st_transfer(void)
         s_req_sent = (UdsTester_ReqTransferData(s_blk_seq,
                                                 (const uint8_t *)TOOL_FW_STORE_ADDR + s_blk_offset,
                                                 s_blk_len) == 0) ? 1U : 0U;
-        if (s_req_sent != 0U) {
-            TOOL_T("Block seq=0x%02X offset=0x%06X len=%d",
-                   s_blk_seq, (unsigned int)s_blk_offset, s_blk_len);
-        }
         return;
     }
 
@@ -489,7 +480,6 @@ static void st_exit(void)
     tool_txn_state_t txn = UdsTester_TxnState();
 
     if (s_req_sent == 0U) {
-        TOOL_I("Step: transfer exit (37)");
         status_report(TOOL_STEP_TRANSFER_EXIT, 100U, 0U);
         s_req_sent = (UdsTester_ReqTransferExit() == 0) ? 1U : 0U;
         return;
@@ -518,7 +508,6 @@ static void st_ecu_reset(void)
     tool_txn_state_t txn = UdsTester_TxnState();
 
     if (s_req_sent == 0U) {
-        TOOL_I("Step: ECU reset (11 01)");
         status_report(TOOL_STEP_ECU_RESET, 0U, 0U);
         s_req_sent = (UdsTester_ReqEcuReset(0x01U) == 0) ? 1U : 0U;
         return;
@@ -546,7 +535,6 @@ static void st_wait_5101(void)
     uint8_t sid = unsolicited_sid();
 
     if (sid == 0x51U) {
-        TOOL_I("Reset ACK received (51 01), upgrade done");
         status_report(TOOL_STEP_DONE, 100U, 0U);
         s_flow_retry = 0;
         s_in_boot = 0;
@@ -554,8 +542,8 @@ static void st_wait_5101(void)
         return;
     }
 
-    s_stage_ms++;
-    if (s_stage_ms >= TOOL_TIMEOUT_RESET_ACK_MS) {
+    /* s_stage_tmr 在 goto_state 进入 WAIT_5101 时启动 */
+    if (nbDelay_IsComplete(&s_stage_tmr)) {
         /* 兜底: 若心跳显示版本已更新, 同样视为成功 */
         if ((s_hb_flag != 0U) && (s_hb_ver >= TOOL_FW_VERSION)) {
             s_hb_flag = 0U;
@@ -572,8 +560,7 @@ static void st_wait_5101(void)
 
 static void st_retry_delay(void)
 {
-    s_retry_delay_ms--;
-    if (s_retry_delay_ms == 0U) {
+    if (nbDelay_IsComplete(&s_flow_retry_tmr)) {
         TOOL_I("Back to heartbeat listening");
         status_report(TOOL_STEP_IDLE, 0U, 0U);
         goto_state(TOOL_ST_LISTEN);
@@ -601,24 +588,24 @@ void Tool_Init(void)
     (void)CanIf_RegisterRxFilter(&entry);
 
     s_state = TOOL_ST_LISTEN;
-    s_last_ms_tick = tickTimer_GetCount();
+    nbDelay_Init(&s_flow_retry_tmr, TOOL_FLOW_RETRY_DELAY_MS);
+    nbDelay_Init(&s_stage_tmr, TOOL_TIMEOUT_BOOT_READY_MS);
+    nbDelay_Init(&s_poll_tmr, 1U);
+    nbDelay_Start(&s_poll_tmr);
     status_report(TOOL_STEP_IDLE, 0U, 0U);
     TOOL_I("=== Upgrade Tool ready, TOOL_FW_VERSION=0x%02X ===", TOOL_FW_VERSION);
 }
 
 void Tool_Poll(void)
 {
-    uint64_t now = tickTimer_GetCount();
-
     CanIf_Poll();
     UdsTester_Poll();
 
     /* 1ms 门控任务 */
-    if (now != s_last_ms_tick) {
-        s_last_ms_tick = now;
+    if (nbDelay_IsComplete_noclose(&s_poll_tmr)) {
+        nbDelay_Start(&s_poll_tmr);
         isotp_ms_update();
         isotp_tx_process();
-        status_poll_1ms();
     }
 
     switch (s_state) {
@@ -635,7 +622,7 @@ void Tool_Poll(void)
         case TOOL_ST_ECU_RESET:    st_ecu_reset();    break;
         case TOOL_ST_WAIT_5101:    st_wait_5101();    break;
         case TOOL_ST_RETRY_DELAY:  st_retry_delay();  break;
-        case TOOL_ST_ERROR:        /* 停机, 仅保留周期上报 */ break;
+        case TOOL_ST_ERROR:        /* 停机, 保持最后上报值 */ break;
         default:                   goto_state(TOOL_ST_LISTEN); break;
     }
 }
