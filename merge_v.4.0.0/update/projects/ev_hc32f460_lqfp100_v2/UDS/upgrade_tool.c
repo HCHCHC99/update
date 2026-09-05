@@ -18,17 +18,30 @@
 #include "TickTimer.h"
 #include <string.h>
 
+/* [TOOL] 行首带 [秒.毫秒] 时间戳 (与 [OTA] 行 time= 同源: tickTimer) */
 #ifndef TOOL_T
-#define TOOL_T(fmt, ...)  LOG_CH(LOG_CH_MAIN, LOG_LEVEL_DEBUG, COLOR_CYAN,   "TOOL", fmt, ##__VA_ARGS__)
+#define TOOL_T(fmt, ...) \
+    do { uint64_t _tm = tickTimer_GetCount(); \
+         LOG_CH(LOG_CH_MAIN, LOG_LEVEL_DEBUG, COLOR_CYAN,   "TOOL", "[%3u.%03us] " fmt, \
+                (unsigned)(_tm / 1000U), (unsigned)(_tm % 1000U), ##__VA_ARGS__); } while (0)
 #endif
 #ifndef TOOL_I
-#define TOOL_I(fmt, ...)  LOG_CH(LOG_CH_MAIN, LOG_LEVEL_INFO, COLOR_GREEN, "TOOL", fmt, ##__VA_ARGS__)
+#define TOOL_I(fmt, ...) \
+    do { uint64_t _tm = tickTimer_GetCount(); \
+         LOG_CH(LOG_CH_MAIN, LOG_LEVEL_INFO, COLOR_GREEN, "TOOL", "[%3u.%03us] " fmt, \
+                (unsigned)(_tm / 1000U), (unsigned)(_tm % 1000U), ##__VA_ARGS__); } while (0)
 #endif
 #ifndef TOOL_W
-#define TOOL_W(fmt, ...)  LOG_CH(LOG_CH_MAIN, LOG_LEVEL_WARN, COLOR_YELLOW,"TOOL", fmt, ##__VA_ARGS__)
+#define TOOL_W(fmt, ...) \
+    do { uint64_t _tm = tickTimer_GetCount(); \
+         LOG_CH(LOG_CH_MAIN, LOG_LEVEL_WARN, COLOR_YELLOW,"TOOL", "[%3u.%03us] " fmt, \
+                (unsigned)(_tm / 1000U), (unsigned)(_tm % 1000U), ##__VA_ARGS__); } while (0)
 #endif
 #ifndef TOOL_E
-#define TOOL_E(fmt, ...)  LOG_CH(LOG_CH_MAIN, LOG_LEVEL_ERROR, COLOR_RED,   "TOOL", fmt, ##__VA_ARGS__)
+#define TOOL_E(fmt, ...) \
+    do { uint64_t _tm = tickTimer_GetCount(); \
+         LOG_CH(LOG_CH_MAIN, LOG_LEVEL_ERROR, COLOR_RED,  "TOOL", "[%3u.%03us] " fmt, \
+                (unsigned)(_tm / 1000U), (unsigned)(_tm % 1000U), ##__VA_ARGS__); } while (0)
 #endif
 
 /***************************** 内部状态 ***********************************/

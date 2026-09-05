@@ -38,78 +38,78 @@
                           AREA ||i.Tool_Init||, CODE, READONLY, ALIGN=2
 
                   Tool_Init PROC
-;;;580    
-;;;581    void Tool_Init(void)
+;;;571    
+;;;572    void Tool_Init(void)
 000000  b51f              PUSH     {r0-r4,lr}
-;;;582    {
-;;;583        CanIf_RxFilterEntry_t entry;
-;;;584    
-;;;585        UdsTester_Init();
+;;;573    {
+;;;574        CanIf_RxFilterEntry_t entry;
+;;;575    
+;;;576        UdsTester_Init();
 000002  f7fffffe          BL       UdsTester_Init
-;;;586    
-;;;587        /* UDS 响应 ID -> ISO-TP 重组 + 事务解析 */
-;;;588        entry.u32CanId = TOOL_CANID_UDS_RESPONSE;
+;;;577    
+;;;578        /* UDS 响应 ID -> ISO-TP 重组 + 事务解析 */
+;;;579        entry.u32CanId = TOOL_CANID_UDS_RESPONSE;
 000006  481a              LDR      r0,|L2.112|
 000008  9000              STR      r0,[sp,#0]
-;;;589        entry.u32CanMask = 0UL;
+;;;580        entry.u32CanMask = 0UL;
 00000a  2000              MOVS     r0,#0
 00000c  9001              STR      r0,[sp,#4]
-;;;590        entry.u8Format = CAN_ID_EXT;
+;;;581        entry.u8Format = CAN_ID_EXT;
 00000e  f88d0008          STRB     r0,[sp,#8]
-;;;591        entry.pfnCallback = &UdsTester_OnCanRx;
+;;;582        entry.pfnCallback = &UdsTester_OnCanRx;
 000012  4818              LDR      r0,|L2.116|
 000014  9003              STR      r0,[sp,#0xc]
-;;;592        (void)CanIf_RegisterRxFilter(&entry);
+;;;583        (void)CanIf_RegisterRxFilter(&entry);
 000016  4668              MOV      r0,sp
 000018  f7fffffe          BL       CanIf_RegisterRxFilter
-;;;593    
-;;;594        /* 产品心跳 ID -> 版本监听 */
-;;;595        entry.u32CanId = TOOL_CANID_HEARTBEAT;
+;;;584    
+;;;585        /* 产品心跳 ID -> 版本监听 */
+;;;586        entry.u32CanId = TOOL_CANID_HEARTBEAT;
 00001c  4816              LDR      r0,|L2.120|
 00001e  9000              STR      r0,[sp,#0]
-;;;596        entry.pfnCallback = &Hb_RxCallback;
+;;;587        entry.pfnCallback = &Hb_RxCallback;
 000020  4816              LDR      r0,|L2.124|
 000022  9003              STR      r0,[sp,#0xc]
-;;;597        (void)CanIf_RegisterRxFilter(&entry);
+;;;588        (void)CanIf_RegisterRxFilter(&entry);
 000024  4668              MOV      r0,sp
 000026  f7fffffe          BL       CanIf_RegisterRxFilter
-;;;598    
-;;;599        s_state = TOOL_ST_LISTEN;
+;;;589    
+;;;590        s_state = TOOL_ST_LISTEN;
 00002a  2000              MOVS     r0,#0
 00002c  4914              LDR      r1,|L2.128|
 00002e  7008              STRB     r0,[r1,#0]
-;;;600        nbDelay_Init(&s_flow_retry_tmr, TOOL_FLOW_RETRY_DELAY_MS);
+;;;591        nbDelay_Init(&s_flow_retry_tmr, TOOL_FLOW_RETRY_DELAY_MS);
 000030  f44f62fa          MOV      r2,#0x7d0
 000034  2300              MOVS     r3,#0
 000036  4813              LDR      r0,|L2.132|
 000038  f7fffffe          BL       nbDelay_Init
-;;;601        nbDelay_Init(&s_stage_tmr, TOOL_TIMEOUT_BOOT_READY_MS);
+;;;592        nbDelay_Init(&s_stage_tmr, TOOL_TIMEOUT_BOOT_READY_MS);
 00003c  f6432298          MOV      r2,#0x3a98
 000040  2300              MOVS     r3,#0
 000042  4811              LDR      r0,|L2.136|
 000044  f7fffffe          BL       nbDelay_Init
-;;;602        nbDelay_Init(&s_poll_tmr, 1U);
+;;;593        nbDelay_Init(&s_poll_tmr, 1U);
 000048  2201              MOVS     r2,#1
 00004a  2300              MOVS     r3,#0
 00004c  480f              LDR      r0,|L2.140|
 00004e  f7fffffe          BL       nbDelay_Init
-;;;603        nbDelay_Start(&s_poll_tmr);
+;;;594        nbDelay_Start(&s_poll_tmr);
 000052  480e              LDR      r0,|L2.140|
 000054  f7fffffe          BL       nbDelay_Start
-;;;604        status_report(TOOL_STEP_IDLE, 0U, 0U);
+;;;595        status_report(TOOL_STEP_IDLE, 0U, 0U);
 000058  2200              MOVS     r2,#0
 00005a  4611              MOV      r1,r2
 00005c  4610              MOV      r0,r2
 00005e  f7fffffe          BL       status_report
-;;;605        TOOL_I("=== Upgrade Tool ready, TOOL_FW_VERSION=0x%02X ===", TOOL_FW_VERSION);
+;;;596        TOOL_I("=== Upgrade Tool ready, TOOL_FW_VERSION=0x%02X ===", TOOL_FW_VERSION);
 000062  2303              MOVS     r3,#3
 000064  a20a              ADR      r2,|L2.144|
 000066  490c              LDR      r1,|L2.152|
 000068  2000              MOVS     r0,#0
 00006a  f7fffffe          BL       SEGGER_RTT_printf
-;;;606    }
+;;;597    }
 00006e  bd1f              POP      {r0-r4,pc}
-;;;607    
+;;;598    
                           ENDP
 
                   |L2.112|
@@ -140,31 +140,31 @@
                           AREA ||i.Tool_Poll||, CODE, READONLY, ALIGN=2
 
                   Tool_Poll PROC
-;;;607    
-;;;608    void Tool_Poll(void)
+;;;598    
+;;;599    void Tool_Poll(void)
 000000  b510              PUSH     {r4,lr}
-;;;609    {
-;;;610        CanIf_Poll();
+;;;600    {
+;;;601        CanIf_Poll();
 000002  f7fffffe          BL       CanIf_Poll
-;;;611        UdsTester_Poll();
+;;;602        UdsTester_Poll();
 000006  f7fffffe          BL       UdsTester_Poll
-;;;612    
-;;;613        /* 1ms 门控任务 */
-;;;614        if (nbDelay_IsComplete_noclose(&s_poll_tmr)) {
+;;;603    
+;;;604        /* 1ms 门控任务 */
+;;;605        if (nbDelay_IsComplete_noclose(&s_poll_tmr)) {
 00000a  4823              LDR      r0,|L3.152|
 00000c  f7fffffe          BL       nbDelay_IsComplete_noclose
 000010  b130              CBZ      r0,|L3.32|
-;;;615            nbDelay_Start(&s_poll_tmr);
+;;;606            nbDelay_Start(&s_poll_tmr);
 000012  4821              LDR      r0,|L3.152|
 000014  f7fffffe          BL       nbDelay_Start
-;;;616            isotp_ms_update();
+;;;607            isotp_ms_update();
 000018  f7fffffe          BL       isotp_ms_update
-;;;617            isotp_tx_process();
+;;;608            isotp_tx_process();
 00001c  f7fffffe          BL       isotp_tx_process
                   |L3.32|
-;;;618        }
-;;;619    
-;;;620        switch (s_state) {
+;;;609        }
+;;;610    
+;;;611        switch (s_state) {
 000020  481e              LDR      r0,|L3.156|
 000022  7800              LDRB     r0,[r0,#0]  ; s_state
 000024  280e              CMP      r0,#0xe
@@ -174,56 +174,56 @@
 000030  1316191c          DCB      0x13,0x16,0x19,0x1c
 000034  1f222528          DCB      0x1f,0x22,0x25,0x28
 000038  2b2e              DCB      0x2b,0x2e
-;;;621            case TOOL_ST_LISTEN:       st_listen();       break;
+;;;612            case TOOL_ST_LISTEN:       st_listen();       break;
 00003a  f7fffffe          BL       st_listen
 00003e  e028              B        |L3.146|
-;;;622            case TOOL_ST_EXT_SESSION:  st_ext_session();  break;
+;;;613            case TOOL_ST_EXT_SESSION:  st_ext_session();  break;
 000040  f7fffffe          BL       st_ext_session
 000044  e025              B        |L3.146|
-;;;623            case TOOL_ST_UNLOCK_APP:   st_unlock();       break;
+;;;614            case TOOL_ST_UNLOCK_APP:   st_unlock();       break;
 000046  f7fffffe          BL       st_unlock
 00004a  e022              B        |L3.146|
-;;;624            case TOOL_ST_JUMP_BOOT:    st_jump_boot();    break;
+;;;615            case TOOL_ST_JUMP_BOOT:    st_jump_boot();    break;
 00004c  f7fffffe          BL       st_jump_boot
 000050  e01f              B        |L3.146|
-;;;625            case TOOL_ST_WAIT_BOOT:    st_wait_boot();    break;
+;;;616            case TOOL_ST_WAIT_BOOT:    st_wait_boot();    break;
 000052  f7fffffe          BL       st_wait_boot
 000056  e01c              B        |L3.146|
-;;;626            case TOOL_ST_PROG_SESSION: st_prog_session(); break;
+;;;617            case TOOL_ST_PROG_SESSION: st_prog_session(); break;
 000058  f7fffffe          BL       st_prog_session
 00005c  e019              B        |L3.146|
-;;;627            case TOOL_ST_UNLOCK_BOOT:  st_unlock();       break;
+;;;618            case TOOL_ST_UNLOCK_BOOT:  st_unlock();       break;
 00005e  f7fffffe          BL       st_unlock
 000062  e016              B        |L3.146|
-;;;628            case TOOL_ST_DL_REQ:       st_dl_req();       break;
+;;;619            case TOOL_ST_DL_REQ:       st_dl_req();       break;
 000064  f7fffffe          BL       st_dl_req
 000068  e013              B        |L3.146|
-;;;629            case TOOL_ST_TRANSFER:     st_transfer();     break;
+;;;620            case TOOL_ST_TRANSFER:     st_transfer();     break;
 00006a  f7fffffe          BL       st_transfer
 00006e  e010              B        |L3.146|
-;;;630            case TOOL_ST_EXIT:         st_exit();         break;
+;;;621            case TOOL_ST_EXIT:         st_exit();         break;
 000070  f7fffffe          BL       st_exit
 000074  e00d              B        |L3.146|
-;;;631            case TOOL_ST_ECU_RESET:    st_ecu_reset();    break;
+;;;622            case TOOL_ST_ECU_RESET:    st_ecu_reset();    break;
 000076  f7fffffe          BL       st_ecu_reset
 00007a  e00a              B        |L3.146|
-;;;632            case TOOL_ST_WAIT_5101:    st_wait_5101();    break;
+;;;623            case TOOL_ST_WAIT_5101:    st_wait_5101();    break;
 00007c  f7fffffe          BL       st_wait_5101
 000080  e007              B        |L3.146|
-;;;633            case TOOL_ST_RETRY_DELAY:  st_retry_delay();  break;
+;;;624            case TOOL_ST_RETRY_DELAY:  st_retry_delay();  break;
 000082  f7fffffe          BL       st_retry_delay
 000086  e004              B        |L3.146|
-;;;634            case TOOL_ST_ERROR:        /* 停机, 保持最后上报值 */ break;
+;;;625            case TOOL_ST_ERROR:        /* 停机, 保持最后上报值 */ break;
 000088  e003              B        |L3.146|
                   |L3.138|
-;;;635            default:                   goto_state(TOOL_ST_LISTEN); break;
+;;;626            default:                   goto_state(TOOL_ST_LISTEN); break;
 00008a  2000              MOVS     r0,#0
 00008c  f7fffffe          BL       goto_state
 000090  bf00              NOP      
                   |L3.146|
-000092  bf00              NOP                            ;621
-;;;636        }
-;;;637    }
+000092  bf00              NOP                            ;612
+;;;627        }
+;;;628    }
 000094  bd10              POP      {r4,pc}
                           ENDP
 
@@ -466,28 +466,28 @@
                           AREA ||i.st_dl_req||, CODE, READONLY, ALIGN=2
 
                   st_dl_req PROC
-;;;395    
-;;;396    static void st_dl_req(void)
+;;;386    
+;;;387    static void st_dl_req(void)
 000000  b5f8              PUSH     {r3-r7,lr}
-;;;397    {
-;;;398        tool_txn_state_t txn = UdsTester_TxnState();
+;;;388    {
+;;;389        tool_txn_state_t txn = UdsTester_TxnState();
 000002  f7fffffe          BL       UdsTester_TxnState
 000006  4606              MOV      r6,r0
-;;;399        const uint8_t *resp;
-;;;400        uint16_t resp_len = 0;
+;;;390        const uint8_t *resp;
+;;;391        uint16_t resp_len = 0;
 000008  2000              MOVS     r0,#0
 00000a  9000              STR      r0,[sp,#0]
-;;;401    
-;;;402        if (s_req_sent == 0U) {
+;;;392    
+;;;393        if (s_req_sent == 0U) {
 00000c  482e              LDR      r0,|L7.200|
 00000e  7800              LDRB     r0,[r0,#0]  ; s_req_sent
 000010  b980              CBNZ     r0,|L7.52|
-;;;403            status_report(TOOL_STEP_DOWNLOAD, 0U, 0U);
+;;;394            status_report(TOOL_STEP_DOWNLOAD, 0U, 0U);
 000012  2200              MOVS     r2,#0
 000014  4611              MOV      r1,r2
 000016  2006              MOVS     r0,#6
 000018  f7fffffe          BL       status_report
-;;;404            s_req_sent = (UdsTester_ReqDownload(TOOL_DL_ADDR, TOOL_FW_SIZE) == 0) ? 1U : 0U;
+;;;395            s_req_sent = (UdsTester_ReqDownload(TOOL_DL_ADDR, TOOL_FW_SIZE) == 0) ? 1U : 0U;
 00001c  f44f3128          MOV      r1,#0x2a000
 000020  482a              LDR      r0,|L7.204|
 000022  f7fffffe          BL       UdsTester_ReqDownload
@@ -500,104 +500,104 @@
 00002e  4926              LDR      r1,|L7.200|
 000030  7008              STRB     r0,[r1,#0]
                   |L7.50|
-;;;405            return;
-;;;406        }
-;;;407    
-;;;408        if (txn == TOOL_TXN_OK) {
-;;;409            UdsTester_ResetTxn();
-;;;410            resp = UdsTester_TxnResp(&resp_len);
-;;;411            /* 74 负载: {maxBlockSizeHi, maxBlockSizeLo} */
-;;;412            if (resp_len >= 2U) {
-;;;413                TOOL_I("Download accepted, max block size=%d", (int)(((uint16_t)resp[0] << 8) | resp[1]));
-;;;414            }
-;;;415            s_blk_offset = 0;
-;;;416            s_blk_seq = TOOL_DL_SEQ_FIRST;
-;;;417            s_blk_retry = 0;
-;;;418            goto_state(TOOL_ST_TRANSFER);
-;;;419        } else if (txn == TOOL_TXN_ERR) {
-;;;420            tool_txn_err_t err = UdsTester_TxnError();
-;;;421            UdsTester_ResetTxn();
-;;;422            if (err == TOOL_TXN_ERR_SECURITY) {
-;;;423                security_resume(TOOL_ST_DL_REQ);
-;;;424            } else if (err == TOOL_TXN_ERR_NRC22_RETRY) {
-;;;425                flow_fail(TOOL_ERR_NRC22_EXHAUSTED, UdsTester_TxnNrc());
-;;;426            } else if (err == TOOL_TXN_ERR_TIMEOUT) {
-;;;427                flow_fail(TOOL_ERR_P2_TIMEOUT, 0U);
-;;;428            } else {
-;;;429                flow_fail(TOOL_ERR_NRC, UdsTester_TxnNrc());
-;;;430            }
-;;;431        }
-;;;432    }
+;;;396            return;
+;;;397        }
+;;;398    
+;;;399        if (txn == TOOL_TXN_OK) {
+;;;400            UdsTester_ResetTxn();
+;;;401            resp = UdsTester_TxnResp(&resp_len);
+;;;402            /* 74 负载: {maxBlockSizeHi, maxBlockSizeLo} */
+;;;403            if (resp_len >= 2U) {
+;;;404                TOOL_I("Download accepted, max block size=%d", (int)(((uint16_t)resp[0] << 8) | resp[1]));
+;;;405            }
+;;;406            s_blk_offset = 0;
+;;;407            s_blk_seq = TOOL_DL_SEQ_FIRST;
+;;;408            s_blk_retry = 0;
+;;;409            goto_state(TOOL_ST_TRANSFER);
+;;;410        } else if (txn == TOOL_TXN_ERR) {
+;;;411            tool_txn_err_t err = UdsTester_TxnError();
+;;;412            UdsTester_ResetTxn();
+;;;413            if (err == TOOL_TXN_ERR_SECURITY) {
+;;;414                security_resume(TOOL_ST_DL_REQ);
+;;;415            } else if (err == TOOL_TXN_ERR_NRC22_RETRY) {
+;;;416                flow_fail(TOOL_ERR_NRC22_EXHAUSTED, UdsTester_TxnNrc());
+;;;417            } else if (err == TOOL_TXN_ERR_TIMEOUT) {
+;;;418                flow_fail(TOOL_ERR_P2_TIMEOUT, 0U);
+;;;419            } else {
+;;;420                flow_fail(TOOL_ERR_NRC, UdsTester_TxnNrc());
+;;;421            }
+;;;422        }
+;;;423    }
 000032  bdf8              POP      {r3-r7,pc}
                   |L7.52|
-000034  2e03              CMP      r6,#3                 ;408
+000034  2e03              CMP      r6,#3                 ;399
 000036  d11f              BNE      |L7.120|
 000038  f7fffffe          BL       UdsTester_ResetTxn
-00003c  4668              MOV      r0,sp                 ;410
+00003c  4668              MOV      r0,sp                 ;401
 00003e  f7fffffe          BL       UdsTester_TxnResp
-000042  4604              MOV      r4,r0                 ;410
-000044  f8bd0000          LDRH     r0,[sp,#0]            ;412
-000048  2802              CMP      r0,#2                 ;412
+000042  4604              MOV      r4,r0                 ;401
+000044  f8bd0000          LDRH     r0,[sp,#0]            ;403
+000048  2802              CMP      r0,#2                 ;403
 00004a  d308              BCC      |L7.94|
-00004c  7860              LDRB     r0,[r4,#1]            ;413
-00004e  7821              LDRB     r1,[r4,#0]            ;413
-000050  ea402301          ORR      r3,r0,r1,LSL #8       ;413
+00004c  7860              LDRB     r0,[r4,#1]            ;404
+00004e  7821              LDRB     r1,[r4,#0]            ;404
+000050  ea402301          ORR      r3,r0,r1,LSL #8       ;404
 000054  a21e              ADR      r2,|L7.208|
 000056  a120              ADR      r1,|L7.216|
-000058  2000              MOVS     r0,#0                 ;413
+000058  2000              MOVS     r0,#0                 ;404
 00005a  f7fffffe          BL       SEGGER_RTT_printf
                   |L7.94|
-00005e  2000              MOVS     r0,#0                 ;415
+00005e  2000              MOVS     r0,#0                 ;406
 000060  492b              LDR      r1,|L7.272|
-000062  6008              STR      r0,[r1,#0]            ;415  ; s_blk_offset
-000064  2001              MOVS     r0,#1                 ;416
+000062  6008              STR      r0,[r1,#0]            ;406  ; s_blk_offset
+000064  2001              MOVS     r0,#1                 ;407
 000066  492b              LDR      r1,|L7.276|
-000068  7008              STRB     r0,[r1,#0]            ;416
-00006a  2000              MOVS     r0,#0                 ;417
+000068  7008              STRB     r0,[r1,#0]            ;407
+00006a  2000              MOVS     r0,#0                 ;408
 00006c  492a              LDR      r1,|L7.280|
-00006e  7008              STRB     r0,[r1,#0]            ;417
-000070  2008              MOVS     r0,#8                 ;418
+00006e  7008              STRB     r0,[r1,#0]            ;408
+000070  2008              MOVS     r0,#8                 ;409
 000072  f7fffffe          BL       goto_state
 000076  e025              B        |L7.196|
                   |L7.120|
-000078  2e04              CMP      r6,#4                 ;419
+000078  2e04              CMP      r6,#4                 ;410
 00007a  d123              BNE      |L7.196|
 00007c  f7fffffe          BL       UdsTester_TxnError
-000080  4605              MOV      r5,r0                 ;420
+000080  4605              MOV      r5,r0                 ;411
 000082  f7fffffe          BL       UdsTester_ResetTxn
-000086  2d04              CMP      r5,#4                 ;422
+000086  2d04              CMP      r5,#4                 ;413
 000088  d103              BNE      |L7.146|
-00008a  2007              MOVS     r0,#7                 ;423
+00008a  2007              MOVS     r0,#7                 ;414
 00008c  f7fffffe          BL       security_resume
 000090  e017              B        |L7.194|
                   |L7.146|
-000092  2d03              CMP      r5,#3                 ;424
+000092  2d03              CMP      r5,#3                 ;415
 000094  d107              BNE      |L7.166|
 000096  f7fffffe          BL       UdsTester_TxnNrc
-00009a  4607              MOV      r7,r0                 ;425
-00009c  4639              MOV      r1,r7                 ;425
-00009e  2004              MOVS     r0,#4                 ;425
+00009a  4607              MOV      r7,r0                 ;416
+00009c  4639              MOV      r1,r7                 ;416
+00009e  2004              MOVS     r0,#4                 ;416
 0000a0  f7fffffe          BL       flow_fail
 0000a4  e00d              B        |L7.194|
                   |L7.166|
-0000a6  2d01              CMP      r5,#1                 ;426
+0000a6  2d01              CMP      r5,#1                 ;417
 0000a8  d104              BNE      |L7.180|
-0000aa  2100              MOVS     r1,#0                 ;427
-0000ac  2001              MOVS     r0,#1                 ;427
+0000aa  2100              MOVS     r1,#0                 ;418
+0000ac  2001              MOVS     r0,#1                 ;418
 0000ae  f7fffffe          BL       flow_fail
 0000b2  e006              B        |L7.194|
                   |L7.180|
 0000b4  f7fffffe          BL       UdsTester_TxnNrc
-0000b8  4607              MOV      r7,r0                 ;429
-0000ba  4639              MOV      r1,r7                 ;429
-0000bc  2002              MOVS     r0,#2                 ;429
+0000b8  4607              MOV      r7,r0                 ;420
+0000ba  4639              MOV      r1,r7                 ;420
+0000bc  2002              MOVS     r0,#2                 ;420
 0000be  f7fffffe          BL       flow_fail
                   |L7.194|
-0000c2  bf00              NOP                            ;431
+0000c2  bf00              NOP                            ;422
                   |L7.196|
 0000c4  bf00              NOP      
 0000c6  e7b4              B        |L7.50|
-;;;433    
+;;;424    
                           ENDP
 
                   |L7.200|
@@ -638,24 +638,24 @@
                           AREA ||i.st_ecu_reset||, CODE, READONLY, ALIGN=2
 
                   st_ecu_reset PROC
-;;;514    
-;;;515    static void st_ecu_reset(void)
+;;;505    
+;;;506    static void st_ecu_reset(void)
 000000  b570              PUSH     {r4-r6,lr}
-;;;516    {
-;;;517        tool_txn_state_t txn = UdsTester_TxnState();
+;;;507    {
+;;;508        tool_txn_state_t txn = UdsTester_TxnState();
 000002  f7fffffe          BL       UdsTester_TxnState
 000006  4604              MOV      r4,r0
-;;;518    
-;;;519        if (s_req_sent == 0U) {
+;;;509    
+;;;510        if (s_req_sent == 0U) {
 000008  481a              LDR      r0,|L8.116|
 00000a  7800              LDRB     r0,[r0,#0]  ; s_req_sent
 00000c  b970              CBNZ     r0,|L8.44|
-;;;520            status_report(TOOL_STEP_ECU_RESET, 0U, 0U);
+;;;511            status_report(TOOL_STEP_ECU_RESET, 0U, 0U);
 00000e  2200              MOVS     r2,#0
 000010  4611              MOV      r1,r2
 000012  2008              MOVS     r0,#8
 000014  f7fffffe          BL       status_report
-;;;521            s_req_sent = (UdsTester_ReqEcuReset(0x01U) == 0) ? 1U : 0U;
+;;;512            s_req_sent = (UdsTester_ReqEcuReset(0x01U) == 0) ? 1U : 0U;
 000018  2001              MOVS     r0,#1
 00001a  f7fffffe          BL       UdsTester_ReqEcuReset
 00001e  b908              CBNZ     r0,|L8.36|
@@ -667,60 +667,60 @@
 000026  4913              LDR      r1,|L8.116|
 000028  7008              STRB     r0,[r1,#0]
                   |L8.42|
-;;;522            return;
-;;;523        }
-;;;524    
-;;;525        if (txn == TOOL_TXN_OK) {
-;;;526            /* boot 上下文正常无响应, 收到响应也继续 */
-;;;527            UdsTester_ResetTxn();
-;;;528            goto_state(TOOL_ST_WAIT_5101);
-;;;529        } else if (txn == TOOL_TXN_ERR) {
-;;;530            tool_txn_err_t err = UdsTester_TxnError();
-;;;531            UdsTester_ResetTxn();
-;;;532            if (err == TOOL_TXN_ERR_TIMEOUT) {
-;;;533                /* 预期行为: 产品静默复位 */
-;;;534                TOOL_I("No resp to 11 01 (expected), product resetting...");
-;;;535                goto_state(TOOL_ST_WAIT_5101);
-;;;536            } else {
-;;;537                flow_fail(TOOL_ERR_NRC, UdsTester_TxnNrc());
-;;;538            }
-;;;539        }
-;;;540    }
+;;;513            return;
+;;;514        }
+;;;515    
+;;;516        if (txn == TOOL_TXN_OK) {
+;;;517            /* boot 上下文正常无响应, 收到响应也继续 */
+;;;518            UdsTester_ResetTxn();
+;;;519            goto_state(TOOL_ST_WAIT_5101);
+;;;520        } else if (txn == TOOL_TXN_ERR) {
+;;;521            tool_txn_err_t err = UdsTester_TxnError();
+;;;522            UdsTester_ResetTxn();
+;;;523            if (err == TOOL_TXN_ERR_TIMEOUT) {
+;;;524                /* 预期行为: 产品静默复位 */
+;;;525                TOOL_I("No resp to 11 01 (expected), product resetting...");
+;;;526                goto_state(TOOL_ST_WAIT_5101);
+;;;527            } else {
+;;;528                flow_fail(TOOL_ERR_NRC, UdsTester_TxnNrc());
+;;;529            }
+;;;530        }
+;;;531    }
 00002a  bd70              POP      {r4-r6,pc}
                   |L8.44|
-00002c  2c03              CMP      r4,#3                 ;525
+00002c  2c03              CMP      r4,#3                 ;516
 00002e  d105              BNE      |L8.60|
 000030  f7fffffe          BL       UdsTester_ResetTxn
-000034  200b              MOVS     r0,#0xb               ;528
+000034  200b              MOVS     r0,#0xb               ;519
 000036  f7fffffe          BL       goto_state
 00003a  e019              B        |L8.112|
                   |L8.60|
-00003c  2c04              CMP      r4,#4                 ;529
+00003c  2c04              CMP      r4,#4                 ;520
 00003e  d117              BNE      |L8.112|
 000040  f7fffffe          BL       UdsTester_TxnError
-000044  4605              MOV      r5,r0                 ;530
+000044  4605              MOV      r5,r0                 ;521
 000046  f7fffffe          BL       UdsTester_ResetTxn
-00004a  2d01              CMP      r5,#1                 ;532
+00004a  2d01              CMP      r5,#1                 ;523
 00004c  d108              BNE      |L8.96|
 00004e  a20a              ADR      r2,|L8.120|
 000050  490b              LDR      r1,|L8.128|
-000052  2000              MOVS     r0,#0                 ;534
+000052  2000              MOVS     r0,#0                 ;525
 000054  f7fffffe          BL       SEGGER_RTT_printf
-000058  200b              MOVS     r0,#0xb               ;535
+000058  200b              MOVS     r0,#0xb               ;526
 00005a  f7fffffe          BL       goto_state
 00005e  e006              B        |L8.110|
                   |L8.96|
 000060  f7fffffe          BL       UdsTester_TxnNrc
-000064  4606              MOV      r6,r0                 ;537
-000066  4631              MOV      r1,r6                 ;537
-000068  2002              MOVS     r0,#2                 ;537
+000064  4606              MOV      r6,r0                 ;528
+000066  4631              MOV      r1,r6                 ;528
+000068  2002              MOVS     r0,#2                 ;528
 00006a  f7fffffe          BL       flow_fail
                   |L8.110|
-00006e  bf00              NOP                            ;539
+00006e  bf00              NOP                            ;530
                   |L8.112|
 000070  bf00              NOP      
 000072  e7da              B        |L8.42|
-;;;541    
+;;;532    
                           ENDP
 
                   |L8.116|
@@ -737,24 +737,24 @@
                           AREA ||i.st_exit||, CODE, READONLY, ALIGN=2
 
                   st_exit PROC
-;;;486    
-;;;487    static void st_exit(void)
+;;;477    
+;;;478    static void st_exit(void)
 000000  b570              PUSH     {r4-r6,lr}
-;;;488    {
-;;;489        tool_txn_state_t txn = UdsTester_TxnState();
+;;;479    {
+;;;480        tool_txn_state_t txn = UdsTester_TxnState();
 000002  f7fffffe          BL       UdsTester_TxnState
 000006  4605              MOV      r5,r0
-;;;490    
-;;;491        if (s_req_sent == 0U) {
+;;;481    
+;;;482        if (s_req_sent == 0U) {
 000008  4820              LDR      r0,|L9.140|
 00000a  7800              LDRB     r0,[r0,#0]  ; s_req_sent
 00000c  b968              CBNZ     r0,|L9.42|
-;;;492            status_report(TOOL_STEP_TRANSFER_EXIT, 100U, 0U);
+;;;483            status_report(TOOL_STEP_TRANSFER_EXIT, 100U, 0U);
 00000e  2200              MOVS     r2,#0
 000010  2164              MOVS     r1,#0x64
 000012  2007              MOVS     r0,#7
 000014  f7fffffe          BL       status_report
-;;;493            s_req_sent = (UdsTester_ReqTransferExit() == 0) ? 1U : 0U;
+;;;484            s_req_sent = (UdsTester_ReqTransferExit() == 0) ? 1U : 0U;
 000018  f7fffffe          BL       UdsTester_ReqTransferExit
 00001c  b908              CBNZ     r0,|L9.34|
 00001e  2001              MOVS     r0,#1
@@ -765,73 +765,73 @@
 000024  4919              LDR      r1,|L9.140|
 000026  7008              STRB     r0,[r1,#0]
                   |L9.40|
-;;;494            return;
-;;;495        }
-;;;496    
-;;;497        if (txn == TOOL_TXN_OK) {
-;;;498            UdsTester_ResetTxn();
-;;;499            goto_state(TOOL_ST_ECU_RESET);
-;;;500        } else if (txn == TOOL_TXN_ERR) {
-;;;501            tool_txn_err_t err = UdsTester_TxnError();
-;;;502            UdsTester_ResetTxn();
-;;;503            if (err == TOOL_TXN_ERR_SECURITY) {
-;;;504                security_resume(TOOL_ST_EXIT);
-;;;505            } else if (err == TOOL_TXN_ERR_NRC22_RETRY) {
-;;;506                flow_fail(TOOL_ERR_NRC22_EXHAUSTED, UdsTester_TxnNrc());
-;;;507            } else if (err == TOOL_TXN_ERR_TIMEOUT) {
-;;;508                flow_fail(TOOL_ERR_P2_TIMEOUT, 0U);
-;;;509            } else {
-;;;510                flow_fail(TOOL_ERR_NRC, UdsTester_TxnNrc());
-;;;511            }
-;;;512        }
-;;;513    }
+;;;485            return;
+;;;486        }
+;;;487    
+;;;488        if (txn == TOOL_TXN_OK) {
+;;;489            UdsTester_ResetTxn();
+;;;490            goto_state(TOOL_ST_ECU_RESET);
+;;;491        } else if (txn == TOOL_TXN_ERR) {
+;;;492            tool_txn_err_t err = UdsTester_TxnError();
+;;;493            UdsTester_ResetTxn();
+;;;494            if (err == TOOL_TXN_ERR_SECURITY) {
+;;;495                security_resume(TOOL_ST_EXIT);
+;;;496            } else if (err == TOOL_TXN_ERR_NRC22_RETRY) {
+;;;497                flow_fail(TOOL_ERR_NRC22_EXHAUSTED, UdsTester_TxnNrc());
+;;;498            } else if (err == TOOL_TXN_ERR_TIMEOUT) {
+;;;499                flow_fail(TOOL_ERR_P2_TIMEOUT, 0U);
+;;;500            } else {
+;;;501                flow_fail(TOOL_ERR_NRC, UdsTester_TxnNrc());
+;;;502            }
+;;;503        }
+;;;504    }
 000028  bd70              POP      {r4-r6,pc}
                   |L9.42|
-00002a  2d03              CMP      r5,#3                 ;497
+00002a  2d03              CMP      r5,#3                 ;488
 00002c  d105              BNE      |L9.58|
 00002e  f7fffffe          BL       UdsTester_ResetTxn
-000032  200a              MOVS     r0,#0xa               ;499
+000032  200a              MOVS     r0,#0xa               ;490
 000034  f7fffffe          BL       goto_state
 000038  e025              B        |L9.134|
                   |L9.58|
-00003a  2d04              CMP      r5,#4                 ;500
+00003a  2d04              CMP      r5,#4                 ;491
 00003c  d123              BNE      |L9.134|
 00003e  f7fffffe          BL       UdsTester_TxnError
-000042  4604              MOV      r4,r0                 ;501
+000042  4604              MOV      r4,r0                 ;492
 000044  f7fffffe          BL       UdsTester_ResetTxn
-000048  2c04              CMP      r4,#4                 ;503
+000048  2c04              CMP      r4,#4                 ;494
 00004a  d103              BNE      |L9.84|
-00004c  2009              MOVS     r0,#9                 ;504
+00004c  2009              MOVS     r0,#9                 ;495
 00004e  f7fffffe          BL       security_resume
 000052  e017              B        |L9.132|
                   |L9.84|
-000054  2c03              CMP      r4,#3                 ;505
+000054  2c03              CMP      r4,#3                 ;496
 000056  d107              BNE      |L9.104|
 000058  f7fffffe          BL       UdsTester_TxnNrc
-00005c  4606              MOV      r6,r0                 ;506
-00005e  4631              MOV      r1,r6                 ;506
-000060  2004              MOVS     r0,#4                 ;506
+00005c  4606              MOV      r6,r0                 ;497
+00005e  4631              MOV      r1,r6                 ;497
+000060  2004              MOVS     r0,#4                 ;497
 000062  f7fffffe          BL       flow_fail
 000066  e00d              B        |L9.132|
                   |L9.104|
-000068  2c01              CMP      r4,#1                 ;507
+000068  2c01              CMP      r4,#1                 ;498
 00006a  d104              BNE      |L9.118|
-00006c  2100              MOVS     r1,#0                 ;508
-00006e  2001              MOVS     r0,#1                 ;508
+00006c  2100              MOVS     r1,#0                 ;499
+00006e  2001              MOVS     r0,#1                 ;499
 000070  f7fffffe          BL       flow_fail
 000074  e006              B        |L9.132|
                   |L9.118|
 000076  f7fffffe          BL       UdsTester_TxnNrc
-00007a  4606              MOV      r6,r0                 ;510
-00007c  4631              MOV      r1,r6                 ;510
-00007e  2002              MOVS     r0,#2                 ;510
+00007a  4606              MOV      r6,r0                 ;501
+00007c  4631              MOV      r1,r6                 ;501
+00007e  2002              MOVS     r0,#2                 ;501
 000080  f7fffffe          BL       flow_fail
                   |L9.132|
-000084  bf00              NOP                            ;512
+000084  bf00              NOP                            ;503
                   |L9.134|
 000086  bf00              NOP      
 000088  e7ce              B        |L9.40|
-;;;514    
+;;;505    
                           ENDP
 
 00008a  0000              DCW      0x0000
@@ -947,14 +947,14 @@
                   st_jump_boot PROC
 ;;;309    
 ;;;310    static void st_jump_boot(void)
-000000  b5f8              PUSH     {r3-r7,lr}
+000000  b570              PUSH     {r4-r6,lr}
 ;;;311    {
 ;;;312        tool_txn_state_t txn = UdsTester_TxnState();
 000002  f7fffffe          BL       UdsTester_TxnState
 000006  4605              MOV      r5,r0
 ;;;313    
 ;;;314        if (s_req_sent == 0U) {
-000008  4831              LDR      r0,|L11.208|
+000008  4829              LDR      r0,|L11.176|
 00000a  7800              LDRB     r0,[r0,#0]  ; s_req_sent
 00000c  b980              CBNZ     r0,|L11.48|
 ;;;315            status_report(TOOL_STEP_JUMP_BOOT, 0U, 0U);
@@ -972,133 +972,109 @@
                   |L11.40|
 000028  2000              MOVS     r0,#0
                   |L11.42|
-00002a  4929              LDR      r1,|L11.208|
+00002a  4921              LDR      r1,|L11.176|
 00002c  7008              STRB     r0,[r1,#0]
                   |L11.46|
 ;;;317            return;
 ;;;318        }
 ;;;319    
 ;;;320        if (txn == TOOL_TXN_OK) {
-;;;321            const uint8_t *resp;
-;;;322            uint16_t resp_len = 0;
-;;;323    
-;;;324            resp = UdsTester_TxnResp(&resp_len);
-;;;325            UdsTester_ResetTxn();
-;;;326            s_in_boot = 1U;
-;;;327            if ((resp_len >= 1U) && (resp[0] == 0x71U)) {
-;;;328                /* 产品把 71 01 FF 00 作为 31 的肯定响应发回: boot 已就绪, 直接进入 */
-;;;329                status_report(TOOL_STEP_PROG_SESSION, 0U, 0U);
-;;;330                goto_state(TOOL_ST_PROG_SESSION);
-;;;331            } else {
-;;;332                /* 无响应或其他: 等 boot 发出 71 01 FF 00 */
+;;;321            /* 肯定响应 (71 01 FF 00, 负载在 SID 之后) = boot 已就绪, 直接进入编程会话 */
+;;;322            UdsTester_ResetTxn();
+;;;323            s_in_boot = 1U;
+;;;324            status_report(TOOL_STEP_PROG_SESSION, 0U, 0U);
+;;;325            goto_state(TOOL_ST_PROG_SESSION);
+;;;326        } else if (txn == TOOL_TXN_ERR) {
+;;;327            tool_txn_err_t err = UdsTester_TxnError();
+;;;328            UdsTester_ResetTxn();
+;;;329            if (err == TOOL_TXN_ERR_TIMEOUT) {
+;;;330                /* 预期行为: 产品静默复位 */
+;;;331                TOOL_I("No resp to 31 01 (expected), product resetting...");
+;;;332                s_in_boot = 1U;
 ;;;333                goto_state(TOOL_ST_WAIT_BOOT);
-;;;334            }
-;;;335        } else if (txn == TOOL_TXN_ERR) {
-;;;336            tool_txn_err_t err = UdsTester_TxnError();
-;;;337            UdsTester_ResetTxn();
-;;;338            if (err == TOOL_TXN_ERR_TIMEOUT) {
-;;;339                /* 预期行为: 产品静默复位 */
-;;;340                TOOL_I("No resp to 31 01 (expected), product resetting...");
-;;;341                s_in_boot = 1U;
-;;;342                goto_state(TOOL_ST_WAIT_BOOT);
-;;;343            } else if (err == TOOL_TXN_ERR_SECURITY) {
-;;;344                security_resume(TOOL_ST_JUMP_BOOT);
-;;;345            } else if (err == TOOL_TXN_ERR_NRC22_RETRY) {
-;;;346                flow_fail(TOOL_ERR_NRC22_EXHAUSTED, UdsTester_TxnNrc());
-;;;347            } else {
-;;;348                flow_fail(TOOL_ERR_NRC, UdsTester_TxnNrc());
-;;;349            }
-;;;350        }
-;;;351    }
-00002e  bdf8              POP      {r3-r7,pc}
+;;;334            } else if (err == TOOL_TXN_ERR_SECURITY) {
+;;;335                security_resume(TOOL_ST_JUMP_BOOT);
+;;;336            } else if (err == TOOL_TXN_ERR_NRC22_RETRY) {
+;;;337                flow_fail(TOOL_ERR_NRC22_EXHAUSTED, UdsTester_TxnNrc());
+;;;338            } else {
+;;;339                flow_fail(TOOL_ERR_NRC, UdsTester_TxnNrc());
+;;;340            }
+;;;341        }
+;;;342    }
+00002e  bd70              POP      {r4-r6,pc}
                   |L11.48|
 000030  2d03              CMP      r5,#3                 ;320
-000032  d11d              BNE      |L11.112|
-000034  2000              MOVS     r0,#0                 ;322
-000036  9000              STR      r0,[sp,#0]            ;322
-000038  4668              MOV      r0,sp                 ;324
-00003a  f7fffffe          BL       UdsTester_TxnResp
-00003e  4604              MOV      r4,r0                 ;324
-000040  f7fffffe          BL       UdsTester_ResetTxn
-000044  2001              MOVS     r0,#1                 ;326
-000046  4923              LDR      r1,|L11.212|
-000048  7008              STRB     r0,[r1,#0]            ;326
-00004a  f8bd0000          LDRH     r0,[sp,#0]            ;327
-00004e  b158              CBZ      r0,|L11.104|
-000050  7820              LDRB     r0,[r4,#0]            ;327
-000052  2871              CMP      r0,#0x71              ;327
-000054  d108              BNE      |L11.104|
-000056  2200              MOVS     r2,#0                 ;329
-000058  4611              MOV      r1,r2                 ;329
-00005a  2005              MOVS     r0,#5                 ;329
-00005c  f7fffffe          BL       status_report
-000060  2005              MOVS     r0,#5                 ;330
-000062  f7fffffe          BL       goto_state
-000066  e002              B        |L11.110|
-                  |L11.104|
-000068  2004              MOVS     r0,#4                 ;333
-00006a  f7fffffe          BL       goto_state
-                  |L11.110|
-00006e  e02c              B        |L11.202|
-                  |L11.112|
-000070  2d04              CMP      r5,#4                 ;335
-000072  d12a              BNE      |L11.202|
-000074  f7fffffe          BL       UdsTester_TxnError
-000078  4604              MOV      r4,r0                 ;336
-00007a  f7fffffe          BL       UdsTester_ResetTxn
-00007e  2c01              CMP      r4,#1                 ;338
-000080  d10b              BNE      |L11.154|
-000082  a215              ADR      r2,|L11.216|
-000084  4916              LDR      r1,|L11.224|
-000086  2000              MOVS     r0,#0                 ;340
-000088  f7fffffe          BL       SEGGER_RTT_printf
-00008c  2001              MOVS     r0,#1                 ;341
-00008e  4911              LDR      r1,|L11.212|
-000090  7008              STRB     r0,[r1,#0]            ;341
-000092  2004              MOVS     r0,#4                 ;342
-000094  f7fffffe          BL       goto_state
-000098  e016              B        |L11.200|
+000032  d10d              BNE      |L11.80|
+000034  f7fffffe          BL       UdsTester_ResetTxn
+000038  2001              MOVS     r0,#1                 ;323
+00003a  491e              LDR      r1,|L11.180|
+00003c  7008              STRB     r0,[r1,#0]            ;323
+00003e  2200              MOVS     r2,#0                 ;324
+000040  4611              MOV      r1,r2                 ;324
+000042  2005              MOVS     r0,#5                 ;324
+000044  f7fffffe          BL       status_report
+000048  2005              MOVS     r0,#5                 ;325
+00004a  f7fffffe          BL       goto_state
+00004e  e02c              B        |L11.170|
+                  |L11.80|
+000050  2d04              CMP      r5,#4                 ;326
+000052  d12a              BNE      |L11.170|
+000054  f7fffffe          BL       UdsTester_TxnError
+000058  4604              MOV      r4,r0                 ;327
+00005a  f7fffffe          BL       UdsTester_ResetTxn
+00005e  2c01              CMP      r4,#1                 ;329
+000060  d10b              BNE      |L11.122|
+000062  a215              ADR      r2,|L11.184|
+000064  4916              LDR      r1,|L11.192|
+000066  2000              MOVS     r0,#0                 ;331
+000068  f7fffffe          BL       SEGGER_RTT_printf
+00006c  2001              MOVS     r0,#1                 ;332
+00006e  4911              LDR      r1,|L11.180|
+000070  7008              STRB     r0,[r1,#0]            ;332
+000072  2004              MOVS     r0,#4                 ;333
+000074  f7fffffe          BL       goto_state
+000078  e016              B        |L11.168|
+                  |L11.122|
+00007a  2c04              CMP      r4,#4                 ;334
+00007c  d103              BNE      |L11.134|
+00007e  2003              MOVS     r0,#3                 ;335
+000080  f7fffffe          BL       security_resume
+000084  e010              B        |L11.168|
+                  |L11.134|
+000086  2c03              CMP      r4,#3                 ;336
+000088  d107              BNE      |L11.154|
+00008a  f7fffffe          BL       UdsTester_TxnNrc
+00008e  4606              MOV      r6,r0                 ;337
+000090  4631              MOV      r1,r6                 ;337
+000092  2004              MOVS     r0,#4                 ;337
+000094  f7fffffe          BL       flow_fail
+000098  e006              B        |L11.168|
                   |L11.154|
-00009a  2c04              CMP      r4,#4                 ;343
-00009c  d103              BNE      |L11.166|
-00009e  2003              MOVS     r0,#3                 ;344
-0000a0  f7fffffe          BL       security_resume
-0000a4  e010              B        |L11.200|
-                  |L11.166|
-0000a6  2c03              CMP      r4,#3                 ;345
-0000a8  d107              BNE      |L11.186|
-0000aa  f7fffffe          BL       UdsTester_TxnNrc
-0000ae  4606              MOV      r6,r0                 ;346
-0000b0  4631              MOV      r1,r6                 ;346
-0000b2  2004              MOVS     r0,#4                 ;346
-0000b4  f7fffffe          BL       flow_fail
-0000b8  e006              B        |L11.200|
-                  |L11.186|
-0000ba  f7fffffe          BL       UdsTester_TxnNrc
-0000be  4606              MOV      r6,r0                 ;348
-0000c0  4631              MOV      r1,r6                 ;348
-0000c2  2002              MOVS     r0,#2                 ;348
-0000c4  f7fffffe          BL       flow_fail
-                  |L11.200|
-0000c8  bf00              NOP                            ;350
-                  |L11.202|
-0000ca  bf00              NOP      
-0000cc  e7af              B        |L11.46|
-;;;352    
+00009a  f7fffffe          BL       UdsTester_TxnNrc
+00009e  4606              MOV      r6,r0                 ;339
+0000a0  4631              MOV      r1,r6                 ;339
+0000a2  2002              MOVS     r0,#2                 ;339
+0000a4  f7fffffe          BL       flow_fail
+                  |L11.168|
+0000a8  bf00              NOP                            ;341
+                  |L11.170|
+0000aa  bf00              NOP      
+0000ac  e7bf              B        |L11.46|
+;;;343    
                           ENDP
 
-0000ce  0000              DCW      0x0000
-                  |L11.208|
+0000ae  0000              DCW      0x0000
+                  |L11.176|
                           DCD      s_req_sent
-                  |L11.212|
+                  |L11.180|
                           DCD      s_in_boot
-                  |L11.216|
-0000d8  544f4f4c          DCB      "TOOL",0
-0000dc  00      
-0000dd  00                DCB      0
-0000de  00                DCB      0
-0000df  00                DCB      0
-                  |L11.224|
+                  |L11.184|
+0000b8  544f4f4c          DCB      "TOOL",0
+0000bc  00      
+0000bd  00                DCB      0
+0000be  00                DCB      0
+0000bf  00                DCB      0
+                  |L11.192|
                           DCD      ||.conststring||+0x15c
 
                           AREA ||i.st_listen||, CODE, READONLY, ALIGN=2
@@ -1171,19 +1147,19 @@
                           AREA ||i.st_prog_session||, CODE, READONLY, ALIGN=2
 
                   st_prog_session PROC
-;;;368    
-;;;369    static void st_prog_session(void)
+;;;359    
+;;;360    static void st_prog_session(void)
 000000  b570              PUSH     {r4-r6,lr}
-;;;370    {
-;;;371        tool_txn_state_t txn = UdsTester_TxnState();
+;;;361    {
+;;;362        tool_txn_state_t txn = UdsTester_TxnState();
 000002  f7fffffe          BL       UdsTester_TxnState
 000006  4605              MOV      r5,r0
-;;;372    
-;;;373        if (s_req_sent == 0U) {
+;;;363    
+;;;364        if (s_req_sent == 0U) {
 000008  481e              LDR      r0,|L13.132|
 00000a  7800              LDRB     r0,[r0,#0]  ; s_req_sent
 00000c  b948              CBNZ     r0,|L13.34|
-;;;374            s_req_sent = (UdsTester_ReqSession(0x02U) == 0) ? 1U : 0U;
+;;;365            s_req_sent = (UdsTester_ReqSession(0x02U) == 0) ? 1U : 0U;
 00000e  2002              MOVS     r0,#2
 000010  f7fffffe          BL       UdsTester_ReqSession
 000014  b908              CBNZ     r0,|L13.26|
@@ -1195,73 +1171,73 @@
 00001c  4919              LDR      r1,|L13.132|
 00001e  7008              STRB     r0,[r1,#0]
                   |L13.32|
-;;;375            return;
-;;;376        }
-;;;377    
-;;;378        if (txn == TOOL_TXN_OK) {
-;;;379            UdsTester_ResetTxn();
-;;;380            goto_state(TOOL_ST_UNLOCK_BOOT);
-;;;381        } else if (txn == TOOL_TXN_ERR) {
-;;;382            tool_txn_err_t err = UdsTester_TxnError();
-;;;383            UdsTester_ResetTxn();
-;;;384            if (err == TOOL_TXN_ERR_SECURITY) {
-;;;385                security_resume(TOOL_ST_PROG_SESSION);
-;;;386            } else if (err == TOOL_TXN_ERR_NRC22_RETRY) {
-;;;387                flow_fail(TOOL_ERR_NRC22_EXHAUSTED, UdsTester_TxnNrc());
-;;;388            } else if (err == TOOL_TXN_ERR_TIMEOUT) {
-;;;389                flow_fail(TOOL_ERR_P2_TIMEOUT, 0U);
-;;;390            } else {
-;;;391                flow_fail(TOOL_ERR_NRC, UdsTester_TxnNrc());
-;;;392            }
-;;;393        }
-;;;394    }
+;;;366            return;
+;;;367        }
+;;;368    
+;;;369        if (txn == TOOL_TXN_OK) {
+;;;370            UdsTester_ResetTxn();
+;;;371            goto_state(TOOL_ST_UNLOCK_BOOT);
+;;;372        } else if (txn == TOOL_TXN_ERR) {
+;;;373            tool_txn_err_t err = UdsTester_TxnError();
+;;;374            UdsTester_ResetTxn();
+;;;375            if (err == TOOL_TXN_ERR_SECURITY) {
+;;;376                security_resume(TOOL_ST_PROG_SESSION);
+;;;377            } else if (err == TOOL_TXN_ERR_NRC22_RETRY) {
+;;;378                flow_fail(TOOL_ERR_NRC22_EXHAUSTED, UdsTester_TxnNrc());
+;;;379            } else if (err == TOOL_TXN_ERR_TIMEOUT) {
+;;;380                flow_fail(TOOL_ERR_P2_TIMEOUT, 0U);
+;;;381            } else {
+;;;382                flow_fail(TOOL_ERR_NRC, UdsTester_TxnNrc());
+;;;383            }
+;;;384        }
+;;;385    }
 000020  bd70              POP      {r4-r6,pc}
                   |L13.34|
-000022  2d03              CMP      r5,#3                 ;378
+000022  2d03              CMP      r5,#3                 ;369
 000024  d105              BNE      |L13.50|
 000026  f7fffffe          BL       UdsTester_ResetTxn
-00002a  2006              MOVS     r0,#6                 ;380
+00002a  2006              MOVS     r0,#6                 ;371
 00002c  f7fffffe          BL       goto_state
 000030  e025              B        |L13.126|
                   |L13.50|
-000032  2d04              CMP      r5,#4                 ;381
+000032  2d04              CMP      r5,#4                 ;372
 000034  d123              BNE      |L13.126|
 000036  f7fffffe          BL       UdsTester_TxnError
-00003a  4604              MOV      r4,r0                 ;382
+00003a  4604              MOV      r4,r0                 ;373
 00003c  f7fffffe          BL       UdsTester_ResetTxn
-000040  2c04              CMP      r4,#4                 ;384
+000040  2c04              CMP      r4,#4                 ;375
 000042  d103              BNE      |L13.76|
-000044  2005              MOVS     r0,#5                 ;385
+000044  2005              MOVS     r0,#5                 ;376
 000046  f7fffffe          BL       security_resume
 00004a  e017              B        |L13.124|
                   |L13.76|
-00004c  2c03              CMP      r4,#3                 ;386
+00004c  2c03              CMP      r4,#3                 ;377
 00004e  d107              BNE      |L13.96|
 000050  f7fffffe          BL       UdsTester_TxnNrc
-000054  4606              MOV      r6,r0                 ;387
-000056  4631              MOV      r1,r6                 ;387
-000058  2004              MOVS     r0,#4                 ;387
+000054  4606              MOV      r6,r0                 ;378
+000056  4631              MOV      r1,r6                 ;378
+000058  2004              MOVS     r0,#4                 ;378
 00005a  f7fffffe          BL       flow_fail
 00005e  e00d              B        |L13.124|
                   |L13.96|
-000060  2c01              CMP      r4,#1                 ;388
+000060  2c01              CMP      r4,#1                 ;379
 000062  d104              BNE      |L13.110|
-000064  2100              MOVS     r1,#0                 ;389
-000066  2001              MOVS     r0,#1                 ;389
+000064  2100              MOVS     r1,#0                 ;380
+000066  2001              MOVS     r0,#1                 ;380
 000068  f7fffffe          BL       flow_fail
 00006c  e006              B        |L13.124|
                   |L13.110|
 00006e  f7fffffe          BL       UdsTester_TxnNrc
-000072  4606              MOV      r6,r0                 ;391
-000074  4631              MOV      r1,r6                 ;391
-000076  2002              MOVS     r0,#2                 ;391
+000072  4606              MOV      r6,r0                 ;382
+000074  4631              MOV      r1,r6                 ;382
+000076  2002              MOVS     r0,#2                 ;382
 000078  f7fffffe          BL       flow_fail
                   |L13.124|
-00007c  bf00              NOP                            ;393
+00007c  bf00              NOP                            ;384
                   |L13.126|
 00007e  bf00              NOP      
 000080  e7ce              B        |L13.32|
-;;;395    
+;;;386    
                           ENDP
 
 000082  0000              DCW      0x0000
@@ -1271,32 +1247,32 @@
                           AREA ||i.st_retry_delay||, CODE, READONLY, ALIGN=2
 
                   st_retry_delay PROC
-;;;569    
-;;;570    static void st_retry_delay(void)
+;;;560    
+;;;561    static void st_retry_delay(void)
 000000  b510              PUSH     {r4,lr}
-;;;571    {
-;;;572        if (nbDelay_IsComplete(&s_flow_retry_tmr)) {
+;;;562    {
+;;;563        if (nbDelay_IsComplete(&s_flow_retry_tmr)) {
 000002  4809              LDR      r0,|L14.40|
 000004  f7fffffe          BL       nbDelay_IsComplete
 000008  b160              CBZ      r0,|L14.36|
-;;;573            TOOL_I("Back to heartbeat listening");
+;;;564            TOOL_I("Back to heartbeat listening");
 00000a  a208              ADR      r2,|L14.44|
 00000c  a109              ADR      r1,|L14.52|
 00000e  2000              MOVS     r0,#0
 000010  f7fffffe          BL       SEGGER_RTT_printf
-;;;574            status_report(TOOL_STEP_IDLE, 0U, 0U);
+;;;565            status_report(TOOL_STEP_IDLE, 0U, 0U);
 000014  2200              MOVS     r2,#0
 000016  4611              MOV      r1,r2
 000018  4610              MOV      r0,r2
 00001a  f7fffffe          BL       status_report
-;;;575            goto_state(TOOL_ST_LISTEN);
+;;;566            goto_state(TOOL_ST_LISTEN);
 00001e  2000              MOVS     r0,#0
 000020  f7fffffe          BL       goto_state
                   |L14.36|
-;;;576        }
-;;;577    }
+;;;567        }
+;;;568    }
 000024  bd10              POP      {r4,pc}
-;;;578    
+;;;569    
                           ENDP
 
 000026  0000              DCW      0x0000
@@ -1324,25 +1300,25 @@
                           AREA ||i.st_transfer||, CODE, READONLY, ALIGN=2
 
                   st_transfer PROC
-;;;433    
-;;;434    static void st_transfer(void)
+;;;424    
+;;;425    static void st_transfer(void)
 000000  e92d43fe          PUSH     {r1-r9,lr}
-;;;435    {
-;;;436        tool_txn_state_t txn = UdsTester_TxnState();
+;;;426    {
+;;;427        tool_txn_state_t txn = UdsTester_TxnState();
 000004  f7fffffe          BL       UdsTester_TxnState
 000008  4606              MOV      r6,r0
-;;;437        uint32_t remaining;
-;;;438        uint8_t percent;
-;;;439    
-;;;440        if (s_req_sent == 0U) {
+;;;428        uint32_t remaining;
+;;;429        uint8_t percent;
+;;;430    
+;;;431        if (s_req_sent == 0U) {
 00000a  4858              LDR      r0,|L15.364|
 00000c  7800              LDRB     r0,[r0,#0]  ; s_req_sent
 00000e  b9f0              CBNZ     r0,|L15.78|
-;;;441            remaining = TOOL_FW_SIZE - s_blk_offset;
+;;;432            remaining = TOOL_FW_SIZE - s_blk_offset;
 000010  4857              LDR      r0,|L15.368|
 000012  6800              LDR      r0,[r0,#0]  ; s_blk_offset
 000014  f5c03528          RSB      r5,r0,#0x2a000
-;;;442            s_blk_len = (remaining > TOOL_DL_BLOCK_DATA_SIZE) ? TOOL_DL_BLOCK_DATA_SIZE : (uint16_t)remaining;
+;;;433            s_blk_len = (remaining > TOOL_DL_BLOCK_DATA_SIZE) ? TOOL_DL_BLOCK_DATA_SIZE : (uint16_t)remaining;
 000018  f5b57f81          CMP      r5,#0x102
 00001c  d902              BLS      |L15.36|
 00001e  f44f7081          MOV      r0,#0x102
@@ -1352,7 +1328,7 @@
                   |L15.38|
 000026  4953              LDR      r1,|L15.372|
 000028  8008              STRH     r0,[r1,#0]
-;;;443            s_req_sent = (UdsTester_ReqTransferData(s_blk_seq,
+;;;434            s_req_sent = (UdsTester_ReqTransferData(s_blk_seq,
 00002a  4851              LDR      r0,|L15.368|
 00002c  6800              LDR      r0,[r0,#0]  ; s_blk_offset
 00002e  f5002188          ADD      r1,r0,#0x44000
@@ -1362,8 +1338,8 @@
 000038  7800              LDRB     r0,[r0,#0]  ; s_blk_seq
 00003a  f7fffffe          BL       UdsTester_ReqTransferData
 00003e  b908              CBNZ     r0,|L15.68|
-;;;444                                                    (const uint8_t *)TOOL_FW_STORE_ADDR + s_blk_offset,
-;;;445                                                    s_blk_len) == 0) ? 1U : 0U;
+;;;435                                                    (const uint8_t *)TOOL_FW_STORE_ADDR + s_blk_offset,
+;;;436                                                    s_blk_len) == 0) ? 1U : 0U;
 000040  2001              MOVS     r0,#1
 000042  e000              B        |L15.70|
                   |L15.68|
@@ -1372,182 +1348,182 @@
 000046  4949              LDR      r1,|L15.364|
 000048  7008              STRB     r0,[r1,#0]
                   |L15.74|
-;;;446            return;
-;;;447        }
-;;;448    
-;;;449        if (txn == TOOL_TXN_OK) {
-;;;450            UdsTester_ResetTxn();
-;;;451            s_blk_offset += s_blk_len;
-;;;452            s_blk_retry = 0;
-;;;453            percent = (uint8_t)(((uint64_t)s_blk_offset * 100U) / TOOL_FW_SIZE);
-;;;454            status_report(TOOL_STEP_DOWNLOAD, percent, 0U);
-;;;455    
-;;;456            if (s_blk_offset >= TOOL_FW_SIZE) {
-;;;457                TOOL_I("All %d bytes transferred", (int)TOOL_FW_SIZE);
-;;;458                goto_state(TOOL_ST_EXIT);
-;;;459            } else {
-;;;460                /* 块序号回绕: 0xFF -> 1 (跟随产品端规则) */
-;;;461                s_blk_seq = (s_blk_seq >= TOOL_DL_SEQ_WRAP) ? TOOL_DL_SEQ_FIRST : (uint8_t)(s_blk_seq + 1U);
-;;;462                s_req_sent = 0;
-;;;463            }
-;;;464        } else if (txn == TOOL_TXN_ERR) {
-;;;465            tool_txn_err_t err = UdsTester_TxnError();
-;;;466            UdsTester_ResetTxn();
-;;;467            if (err == TOOL_TXN_ERR_SECURITY) {
-;;;468                security_resume(TOOL_ST_TRANSFER);
-;;;469            } else if ((err == TOOL_TXN_ERR_TIMEOUT) || (err == TOOL_TXN_ERR_NRC)) {
-;;;470                s_blk_retry++;
-;;;471                if (s_blk_retry >= TOOL_BLOCK_RETRY_MAX) {
-;;;472                    TOOL_E("Block 0x%02X failed %d times", s_blk_seq, s_blk_retry);
-;;;473                    flow_fail(TOOL_ERR_NRC, UdsTester_TxnNrc());
-;;;474                } else {
-;;;475                    TOOL_W("Block 0x%02X failed (err=%d), resend %d/%d",
-;;;476                           s_blk_seq, err, s_blk_retry, TOOL_BLOCK_RETRY_MAX);
-;;;477                    s_req_sent = 0;
-;;;478                }
-;;;479            } else if (err == TOOL_TXN_ERR_NRC22_RETRY) {
-;;;480                flow_fail(TOOL_ERR_NRC22_EXHAUSTED, UdsTester_TxnNrc());
-;;;481            } else {
-;;;482                flow_fail(TOOL_ERR_ISOTP, 0U);
-;;;483            }
-;;;484        }
-;;;485    }
+;;;437            return;
+;;;438        }
+;;;439    
+;;;440        if (txn == TOOL_TXN_OK) {
+;;;441            UdsTester_ResetTxn();
+;;;442            s_blk_offset += s_blk_len;
+;;;443            s_blk_retry = 0;
+;;;444            percent = (uint8_t)(((uint64_t)s_blk_offset * 100U) / TOOL_FW_SIZE);
+;;;445            status_report(TOOL_STEP_DOWNLOAD, percent, 0U);
+;;;446    
+;;;447            if (s_blk_offset >= TOOL_FW_SIZE) {
+;;;448                TOOL_I("All %d bytes transferred", (int)TOOL_FW_SIZE);
+;;;449                goto_state(TOOL_ST_EXIT);
+;;;450            } else {
+;;;451                /* 块序号回绕: 0xFF -> 1 (跟随产品端规则) */
+;;;452                s_blk_seq = (s_blk_seq >= TOOL_DL_SEQ_WRAP) ? TOOL_DL_SEQ_FIRST : (uint8_t)(s_blk_seq + 1U);
+;;;453                s_req_sent = 0;
+;;;454            }
+;;;455        } else if (txn == TOOL_TXN_ERR) {
+;;;456            tool_txn_err_t err = UdsTester_TxnError();
+;;;457            UdsTester_ResetTxn();
+;;;458            if (err == TOOL_TXN_ERR_SECURITY) {
+;;;459                security_resume(TOOL_ST_TRANSFER);
+;;;460            } else if ((err == TOOL_TXN_ERR_TIMEOUT) || (err == TOOL_TXN_ERR_NRC)) {
+;;;461                s_blk_retry++;
+;;;462                if (s_blk_retry >= TOOL_BLOCK_RETRY_MAX) {
+;;;463                    TOOL_E("Block 0x%02X failed %d times", s_blk_seq, s_blk_retry);
+;;;464                    flow_fail(TOOL_ERR_NRC, UdsTester_TxnNrc());
+;;;465                } else {
+;;;466                    TOOL_W("Block 0x%02X failed (err=%d), resend %d/%d",
+;;;467                           s_blk_seq, err, s_blk_retry, TOOL_BLOCK_RETRY_MAX);
+;;;468                    s_req_sent = 0;
+;;;469                }
+;;;470            } else if (err == TOOL_TXN_ERR_NRC22_RETRY) {
+;;;471                flow_fail(TOOL_ERR_NRC22_EXHAUSTED, UdsTester_TxnNrc());
+;;;472            } else {
+;;;473                flow_fail(TOOL_ERR_ISOTP, 0U);
+;;;474            }
+;;;475        }
+;;;476    }
 00004a  e8bd83fe          POP      {r1-r9,pc}
                   |L15.78|
-00004e  2e03              CMP      r6,#3                 ;449
+00004e  2e03              CMP      r6,#3                 ;440
 000050  d13e              BNE      |L15.208|
 000052  f7fffffe          BL       UdsTester_ResetTxn
 000056  4846              LDR      r0,|L15.368|
-000058  6800              LDR      r0,[r0,#0]            ;451  ; s_blk_offset
+000058  6800              LDR      r0,[r0,#0]            ;442  ; s_blk_offset
 00005a  4946              LDR      r1,|L15.372|
-00005c  8809              LDRH     r1,[r1,#0]            ;451  ; s_blk_len
-00005e  4408              ADD      r0,r0,r1              ;451
+00005c  8809              LDRH     r1,[r1,#0]            ;442  ; s_blk_len
+00005e  4408              ADD      r0,r0,r1              ;442
 000060  4943              LDR      r1,|L15.368|
-000062  6008              STR      r0,[r1,#0]            ;451  ; s_blk_offset
-000064  2000              MOVS     r0,#0                 ;452
+000062  6008              STR      r0,[r1,#0]            ;442  ; s_blk_offset
+000064  2000              MOVS     r0,#0                 ;443
 000066  4945              LDR      r1,|L15.380|
-000068  7008              STRB     r0,[r1,#0]            ;452
+000068  7008              STRB     r0,[r1,#0]            ;443
 00006a  4841              LDR      r0,|L15.368|
-00006c  6800              LDR      r0,[r0,#0]            ;453  ; s_blk_offset
-00006e  2164              MOVS     r1,#0x64              ;453
-000070  fba07001          UMULL    r7,r0,r0,r1           ;453
-000074  4601              MOV      r1,r0                 ;453
-000076  f44f3228          MOV      r2,#0x2a000           ;453
-00007a  2300              MOVS     r3,#0                 ;453
-00007c  4638              MOV      r0,r7                 ;453
+00006c  6800              LDR      r0,[r0,#0]            ;444  ; s_blk_offset
+00006e  2164              MOVS     r1,#0x64              ;444
+000070  fba07001          UMULL    r7,r0,r0,r1           ;444
+000074  4601              MOV      r1,r0                 ;444
+000076  f44f3228          MOV      r2,#0x2a000           ;444
+00007a  2300              MOVS     r3,#0                 ;444
+00007c  4638              MOV      r0,r7                 ;444
 00007e  f7fffffe          BL       __aeabi_uldivmod
-000082  f00009ff          AND      r9,r0,#0xff           ;453
-000086  2200              MOVS     r2,#0                 ;454
-000088  4649              MOV      r1,r9                 ;454
-00008a  2006              MOVS     r0,#6                 ;454
+000082  f00009ff          AND      r9,r0,#0xff           ;444
+000086  2200              MOVS     r2,#0                 ;445
+000088  4649              MOV      r1,r9                 ;445
+00008a  2006              MOVS     r0,#6                 ;445
 00008c  f7fffffe          BL       status_report
 000090  4837              LDR      r0,|L15.368|
-000092  6800              LDR      r0,[r0,#0]            ;456  ; s_blk_offset
-000094  f5b03f28          CMP      r0,#0x2a000           ;456
+000092  6800              LDR      r0,[r0,#0]            ;447  ; s_blk_offset
+000094  f5b03f28          CMP      r0,#0x2a000           ;447
 000098  d30a              BCC      |L15.176|
-00009a  f44f3328          MOV      r3,#0x2a000           ;457
+00009a  f44f3328          MOV      r3,#0x2a000           ;448
 00009e  a238              ADR      r2,|L15.384|
 0000a0  a139              ADR      r1,|L15.392|
-0000a2  2000              MOVS     r0,#0                 ;457
+0000a2  2000              MOVS     r0,#0                 ;448
 0000a4  f7fffffe          BL       SEGGER_RTT_printf
-0000a8  2009              MOVS     r0,#9                 ;458
+0000a8  2009              MOVS     r0,#9                 ;449
 0000aa  f7fffffe          BL       goto_state
 0000ae  e05b              B        |L15.360|
                   |L15.176|
 0000b0  4831              LDR      r0,|L15.376|
-0000b2  7800              LDRB     r0,[r0,#0]            ;461  ; s_blk_seq
-0000b4  28ff              CMP      r0,#0xff              ;461
+0000b2  7800              LDRB     r0,[r0,#0]            ;452  ; s_blk_seq
+0000b4  28ff              CMP      r0,#0xff              ;452
 0000b6  d301              BCC      |L15.188|
-0000b8  2001              MOVS     r0,#1                 ;461
+0000b8  2001              MOVS     r0,#1                 ;452
 0000ba  e003              B        |L15.196|
                   |L15.188|
 0000bc  482e              LDR      r0,|L15.376|
-0000be  7800              LDRB     r0,[r0,#0]            ;461  ; s_blk_seq
-0000c0  1c40              ADDS     r0,r0,#1              ;461
-0000c2  b2c0              UXTB     r0,r0                 ;461
+0000be  7800              LDRB     r0,[r0,#0]            ;452  ; s_blk_seq
+0000c0  1c40              ADDS     r0,r0,#1              ;452
+0000c2  b2c0              UXTB     r0,r0                 ;452
                   |L15.196|
 0000c4  492c              LDR      r1,|L15.376|
-0000c6  7008              STRB     r0,[r1,#0]            ;461
-0000c8  2000              MOVS     r0,#0                 ;462
+0000c6  7008              STRB     r0,[r1,#0]            ;452
+0000c8  2000              MOVS     r0,#0                 ;453
 0000ca  4928              LDR      r1,|L15.364|
-0000cc  7008              STRB     r0,[r1,#0]            ;462
+0000cc  7008              STRB     r0,[r1,#0]            ;453
 0000ce  e04b              B        |L15.360|
                   |L15.208|
-0000d0  2e04              CMP      r6,#4                 ;464
+0000d0  2e04              CMP      r6,#4                 ;455
 0000d2  d149              BNE      |L15.360|
 0000d4  f7fffffe          BL       UdsTester_TxnError
-0000d8  4604              MOV      r4,r0                 ;465
+0000d8  4604              MOV      r4,r0                 ;456
 0000da  f7fffffe          BL       UdsTester_ResetTxn
-0000de  2c04              CMP      r4,#4                 ;467
+0000de  2c04              CMP      r4,#4                 ;458
 0000e0  d103              BNE      |L15.234|
-0000e2  2008              MOVS     r0,#8                 ;468
+0000e2  2008              MOVS     r0,#8                 ;459
 0000e4  f7fffffe          BL       security_resume
 0000e8  e03d              B        |L15.358|
                   |L15.234|
-0000ea  2c01              CMP      r4,#1                 ;469
+0000ea  2c01              CMP      r4,#1                 ;460
 0000ec  d001              BEQ      |L15.242|
-0000ee  2c02              CMP      r4,#2                 ;469
+0000ee  2c02              CMP      r4,#2                 ;460
 0000f0  d12b              BNE      |L15.330|
                   |L15.242|
 0000f2  4822              LDR      r0,|L15.380|
-0000f4  7800              LDRB     r0,[r0,#0]            ;470  ; s_blk_retry
-0000f6  1c40              ADDS     r0,r0,#1              ;470
+0000f4  7800              LDRB     r0,[r0,#0]            ;461  ; s_blk_retry
+0000f6  1c40              ADDS     r0,r0,#1              ;461
 0000f8  4920              LDR      r1,|L15.380|
-0000fa  7008              STRB     r0,[r1,#0]            ;470
-0000fc  4608              MOV      r0,r1                 ;471
-0000fe  7800              LDRB     r0,[r0,#0]            ;471  ; s_blk_retry
-000100  2803              CMP      r0,#3                 ;471
+0000fa  7008              STRB     r0,[r1,#0]            ;461
+0000fc  4608              MOV      r0,r1                 ;462
+0000fe  7800              LDRB     r0,[r0,#0]            ;462  ; s_blk_retry
+000100  2803              CMP      r0,#3                 ;462
 000102  d311              BCC      |L15.296|
-000104  4608              MOV      r0,r1                 ;472
-000106  7800              LDRB     r0,[r0,#0]            ;472  ; s_blk_retry
-000108  9000              STR      r0,[sp,#0]            ;472
+000104  4608              MOV      r0,r1                 ;463
+000106  7800              LDRB     r0,[r0,#0]            ;463  ; s_blk_retry
+000108  9000              STR      r0,[sp,#0]            ;463
 00010a  481b              LDR      r0,|L15.376|
-00010c  7803              LDRB     r3,[r0,#0]            ;472  ; s_blk_seq
+00010c  7803              LDRB     r3,[r0,#0]            ;463  ; s_blk_seq
 00010e  a21c              ADR      r2,|L15.384|
 000110  a128              ADR      r1,|L15.436|
-000112  2000              MOVS     r0,#0                 ;472
+000112  2000              MOVS     r0,#0                 ;463
 000114  f7fffffe          BL       SEGGER_RTT_printf
 000118  f7fffffe          BL       UdsTester_TxnNrc
-00011c  4607              MOV      r7,r0                 ;473
-00011e  4639              MOV      r1,r7                 ;473
-000120  2002              MOVS     r0,#2                 ;473
+00011c  4607              MOV      r7,r0                 ;464
+00011e  4639              MOV      r1,r7                 ;464
+000120  2002              MOVS     r0,#2                 ;464
 000122  f7fffffe          BL       flow_fail
 000126  e01e              B        |L15.358|
                   |L15.296|
-000128  2003              MOVS     r0,#3                 ;475
+000128  2003              MOVS     r0,#3                 ;466
 00012a  4914              LDR      r1,|L15.380|
-00012c  7809              LDRB     r1,[r1,#0]            ;475  ; s_blk_retry
-00012e  e9cd4100          STRD     r4,r1,[sp,#0]         ;475
-000132  9002              STR      r0,[sp,#8]            ;475
+00012c  7809              LDRB     r1,[r1,#0]            ;466  ; s_blk_retry
+00012e  e9cd4100          STRD     r4,r1,[sp,#0]         ;466
+000132  9002              STR      r0,[sp,#8]            ;466
 000134  4810              LDR      r0,|L15.376|
-000136  7803              LDRB     r3,[r0,#0]            ;475  ; s_blk_seq
+000136  7803              LDRB     r3,[r0,#0]            ;466  ; s_blk_seq
 000138  a211              ADR      r2,|L15.384|
 00013a  a12a              ADR      r1,|L15.484|
-00013c  2000              MOVS     r0,#0                 ;475
+00013c  2000              MOVS     r0,#0                 ;466
 00013e  f7fffffe          BL       SEGGER_RTT_printf
-000142  2000              MOVS     r0,#0                 ;477
+000142  2000              MOVS     r0,#0                 ;468
 000144  4909              LDR      r1,|L15.364|
-000146  7008              STRB     r0,[r1,#0]            ;477
+000146  7008              STRB     r0,[r1,#0]            ;468
 000148  e00d              B        |L15.358|
                   |L15.330|
-00014a  2c03              CMP      r4,#3                 ;479
+00014a  2c03              CMP      r4,#3                 ;470
 00014c  d107              BNE      |L15.350|
 00014e  f7fffffe          BL       UdsTester_TxnNrc
-000152  4607              MOV      r7,r0                 ;480
-000154  4639              MOV      r1,r7                 ;480
-000156  2004              MOVS     r0,#4                 ;480
+000152  4607              MOV      r7,r0                 ;471
+000154  4639              MOV      r1,r7                 ;471
+000156  2004              MOVS     r0,#4                 ;471
 000158  f7fffffe          BL       flow_fail
 00015c  e003              B        |L15.358|
                   |L15.350|
-00015e  2100              MOVS     r1,#0                 ;482
-000160  2003              MOVS     r0,#3                 ;482
+00015e  2100              MOVS     r1,#0                 ;473
+000160  2003              MOVS     r0,#3                 ;473
 000162  f7fffffe          BL       flow_fail
                   |L15.358|
-000166  bf00              NOP                            ;484
+000166  bf00              NOP                            ;475
                   |L15.360|
 000168  bf00              NOP      
 00016a  e76e              B        |L15.74|
-;;;486    
+;;;477    
                           ENDP
 
                   |L15.364|
@@ -1846,90 +1822,90 @@
                           AREA ||i.st_wait_5101||, CODE, READONLY, ALIGN=2
 
                   st_wait_5101 PROC
-;;;541    
-;;;542    static void st_wait_5101(void)
+;;;532    
+;;;533    static void st_wait_5101(void)
 000000  b510              PUSH     {r4,lr}
-;;;543    {
-;;;544        uint8_t sid = unsolicited_sid();
+;;;534    {
+;;;535        uint8_t sid = unsolicited_sid();
 000002  f7fffffe          BL       unsolicited_sid
 000006  4604              MOV      r4,r0
-;;;545    
-;;;546        if (sid == 0x51U) {
+;;;536    
+;;;537        if (sid == 0x51U) {
 000008  2c51              CMP      r4,#0x51
 00000a  d10c              BNE      |L17.38|
-;;;547            status_report(TOOL_STEP_DONE, 100U, 0U);
+;;;538            status_report(TOOL_STEP_DONE, 100U, 0U);
 00000c  2200              MOVS     r2,#0
 00000e  2164              MOVS     r1,#0x64
 000010  2009              MOVS     r0,#9
 000012  f7fffffe          BL       status_report
-;;;548            s_flow_retry = 0;
+;;;539            s_flow_retry = 0;
 000016  2000              MOVS     r0,#0
 000018  4917              LDR      r1,|L17.120|
 00001a  7008              STRB     r0,[r1,#0]
-;;;549            s_in_boot = 0;
+;;;540            s_in_boot = 0;
 00001c  4917              LDR      r1,|L17.124|
 00001e  7008              STRB     r0,[r1,#0]
-;;;550            goto_state(TOOL_ST_LISTEN);
+;;;541            goto_state(TOOL_ST_LISTEN);
 000020  f7fffffe          BL       goto_state
                   |L17.36|
-;;;551            return;
-;;;552        }
-;;;553    
-;;;554        /* s_stage_tmr 在 goto_state 进入 WAIT_5101 时启动 */
-;;;555        if (nbDelay_IsComplete(&s_stage_tmr)) {
-;;;556            /* 兜底: 若心跳显示版本已更新, 同样视为成功 */
-;;;557            if ((s_hb_flag != 0U) && (s_hb_ver >= TOOL_FW_VERSION)) {
-;;;558                s_hb_flag = 0U;
-;;;559                TOOL_I("51 01 missed but heartbeat ver=0x%02X, upgrade done", s_hb_ver);
-;;;560                status_report(TOOL_STEP_DONE, 100U, 0U);
-;;;561                s_flow_retry = 0;
-;;;562                s_in_boot = 0;
-;;;563                goto_state(TOOL_ST_LISTEN);
-;;;564            } else {
-;;;565                flow_fail(TOOL_ERR_RESET_ACK_TIMEOUT, 0U);
-;;;566            }
-;;;567        }
-;;;568    }
+;;;542            return;
+;;;543        }
+;;;544    
+;;;545        /* s_stage_tmr 在 goto_state 进入 WAIT_5101 时启动 */
+;;;546        if (nbDelay_IsComplete(&s_stage_tmr)) {
+;;;547            /* 兜底: 若心跳显示版本已更新, 同样视为成功 */
+;;;548            if ((s_hb_flag != 0U) && (s_hb_ver >= TOOL_FW_VERSION)) {
+;;;549                s_hb_flag = 0U;
+;;;550                TOOL_I("51 01 missed but heartbeat ver=0x%02X, upgrade done", s_hb_ver);
+;;;551                status_report(TOOL_STEP_DONE, 100U, 0U);
+;;;552                s_flow_retry = 0;
+;;;553                s_in_boot = 0;
+;;;554                goto_state(TOOL_ST_LISTEN);
+;;;555            } else {
+;;;556                flow_fail(TOOL_ERR_RESET_ACK_TIMEOUT, 0U);
+;;;557            }
+;;;558        }
+;;;559    }
 000024  bd10              POP      {r4,pc}
                   |L17.38|
 000026  4816              LDR      r0,|L17.128|
 000028  f7fffffe          BL       nbDelay_IsComplete
 00002c  b308              CBZ      r0,|L17.114|
 00002e  4815              LDR      r0,|L17.132|
-000030  7800              LDRB     r0,[r0,#0]            ;557  ; s_hb_flag
+000030  7800              LDRB     r0,[r0,#0]            ;548  ; s_hb_flag
 000032  b1d0              CBZ      r0,|L17.106|
 000034  4814              LDR      r0,|L17.136|
-000036  7800              LDRB     r0,[r0,#0]            ;557  ; s_hb_ver
-000038  2803              CMP      r0,#3                 ;557
+000036  7800              LDRB     r0,[r0,#0]            ;548  ; s_hb_ver
+000038  2803              CMP      r0,#3                 ;548
 00003a  d316              BCC      |L17.106|
-00003c  2000              MOVS     r0,#0                 ;558
+00003c  2000              MOVS     r0,#0                 ;549
 00003e  4911              LDR      r1,|L17.132|
-000040  7008              STRB     r0,[r1,#0]            ;558
+000040  7008              STRB     r0,[r1,#0]            ;549
 000042  4811              LDR      r0,|L17.136|
-000044  7803              LDRB     r3,[r0,#0]            ;559  ; s_hb_ver
+000044  7803              LDRB     r3,[r0,#0]            ;550  ; s_hb_ver
 000046  a211              ADR      r2,|L17.140|
 000048  4912              LDR      r1,|L17.148|
-00004a  2000              MOVS     r0,#0                 ;559
+00004a  2000              MOVS     r0,#0                 ;550
 00004c  f7fffffe          BL       SEGGER_RTT_printf
-000050  2200              MOVS     r2,#0                 ;560
-000052  2164              MOVS     r1,#0x64              ;560
-000054  2009              MOVS     r0,#9                 ;560
+000050  2200              MOVS     r2,#0                 ;551
+000052  2164              MOVS     r1,#0x64              ;551
+000054  2009              MOVS     r0,#9                 ;551
 000056  f7fffffe          BL       status_report
-00005a  2000              MOVS     r0,#0                 ;561
+00005a  2000              MOVS     r0,#0                 ;552
 00005c  4906              LDR      r1,|L17.120|
-00005e  7008              STRB     r0,[r1,#0]            ;561
+00005e  7008              STRB     r0,[r1,#0]            ;552
 000060  4906              LDR      r1,|L17.124|
-000062  7008              STRB     r0,[r1,#0]            ;562
+000062  7008              STRB     r0,[r1,#0]            ;553
 000064  f7fffffe          BL       goto_state
 000068  e003              B        |L17.114|
                   |L17.106|
-00006a  2100              MOVS     r1,#0                 ;565
-00006c  2008              MOVS     r0,#8                 ;565
+00006a  2100              MOVS     r1,#0                 ;556
+00006c  2008              MOVS     r0,#8                 ;556
 00006e  f7fffffe          BL       flow_fail
                   |L17.114|
 000072  bf00              NOP      
 000074  e7d6              B        |L17.36|
-;;;569    
+;;;560    
                           ENDP
 
 000076  0000              DCW      0x0000
@@ -1955,46 +1931,46 @@
                           AREA ||i.st_wait_boot||, CODE, READONLY, ALIGN=2
 
                   st_wait_boot PROC
-;;;352    
-;;;353    static void st_wait_boot(void)
+;;;343    
+;;;344    static void st_wait_boot(void)
 000000  b510              PUSH     {r4,lr}
-;;;354    {
-;;;355        uint8_t sid = unsolicited_sid();
+;;;345    {
+;;;346        uint8_t sid = unsolicited_sid();
 000002  f7fffffe          BL       unsolicited_sid
 000006  4604              MOV      r4,r0
-;;;356    
-;;;357        if (sid == 0x71U) {
+;;;347    
+;;;348        if (sid == 0x71U) {
 000008  2c71              CMP      r4,#0x71
 00000a  d108              BNE      |L18.30|
-;;;358            status_report(TOOL_STEP_PROG_SESSION, 0U, 0U);
+;;;349            status_report(TOOL_STEP_PROG_SESSION, 0U, 0U);
 00000c  2200              MOVS     r2,#0
 00000e  4611              MOV      r1,r2
 000010  2005              MOVS     r0,#5
 000012  f7fffffe          BL       status_report
-;;;359            goto_state(TOOL_ST_PROG_SESSION);
+;;;350            goto_state(TOOL_ST_PROG_SESSION);
 000016  2005              MOVS     r0,#5
 000018  f7fffffe          BL       goto_state
                   |L18.28|
-;;;360            return;
-;;;361        }
-;;;362    
-;;;363        /* s_stage_tmr 在 goto_state 进入 WAIT_BOOT 时启动 */
-;;;364        if (nbDelay_IsComplete(&s_stage_tmr)) {
-;;;365            flow_fail(TOOL_ERR_BOOT_READY_TIMEOUT, 0U);
-;;;366        }
-;;;367    }
+;;;351            return;
+;;;352        }
+;;;353    
+;;;354        /* s_stage_tmr 在 goto_state 进入 WAIT_BOOT 时启动 */
+;;;355        if (nbDelay_IsComplete(&s_stage_tmr)) {
+;;;356            flow_fail(TOOL_ERR_BOOT_READY_TIMEOUT, 0U);
+;;;357        }
+;;;358    }
 00001c  bd10              POP      {r4,pc}
                   |L18.30|
 00001e  4805              LDR      r0,|L18.52|
 000020  f7fffffe          BL       nbDelay_IsComplete
 000024  b118              CBZ      r0,|L18.46|
-000026  2100              MOVS     r1,#0                 ;365
-000028  2007              MOVS     r0,#7                 ;365
+000026  2100              MOVS     r1,#0                 ;356
+000028  2007              MOVS     r0,#7                 ;356
 00002a  f7fffffe          BL       flow_fail
                   |L18.46|
 00002e  bf00              NOP      
 000030  e7f4              B        |L18.28|
-;;;368    
+;;;359    
                           ENDP
 
 000032  0000              DCW      0x0000

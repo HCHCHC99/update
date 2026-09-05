@@ -39,8 +39,9 @@
 /* 0x34 请求下载的目标地址标签 (产品端映射: 0x08018000 -> APP1 0x1A000) */
 #define TOOL_DL_ADDR                0x08018000UL
 
-/* 0x36 每块数据长度 (沿用现有 TBOX: 258 字节/块) */
-#define TOOL_DL_BLOCK_DATA_SIZE     258U
+/* 0x36 每块数据长度 (必须为 4 的倍数: 产品按块累加写 Flash, 
+ * 258 会导致块 2 起始地址 0x1A102 非字对齐, EFM 编程挂死无 76 响应) */
+#define TOOL_DL_BLOCK_DATA_SIZE     256U
 
 /* 0x36 块序号规则: 从 1 开始递增, 0xFF 后回绕到 1 (跟随产品端) */
 #define TOOL_DL_SEQ_FIRST           1U

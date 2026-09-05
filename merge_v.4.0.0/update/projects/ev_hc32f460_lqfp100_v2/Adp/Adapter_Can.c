@@ -385,7 +385,7 @@ bool CanIf_Send(const CanMsg_t *pMsg)
         
         if (send_ret == CAN_RET_OK) {
             __enable_irq();
-            CANIF_D("TX direct: ID=0x%08X, len=%d", stcFrame.id, stcFrame.len);
+            //CANIF_D("TX direct: ID=0x%08X, len=%d", stcFrame.id, stcFrame.len);
             return true;
         }
     }

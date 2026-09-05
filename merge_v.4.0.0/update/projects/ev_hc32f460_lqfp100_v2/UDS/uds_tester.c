@@ -12,15 +12,24 @@
 #include "TickTimer.h"
 #include <string.h>
 
-/* 调试打印: 复用 OTA 通道宏 (isotp_transport.h 中定义) */
+/* 调试打印: 复用 OTA 通道宏 (isotp_transport.h 中定义), 行首带 [秒.毫秒] 时间戳 */
 #ifndef TOOL_T
-#define TOOL_T(fmt, ...)  LOG_CH(LOG_CH_MAIN, LOG_LEVEL_INFO, COLOR_GREEN, "TOOL", fmt, ##__VA_ARGS__)
+#define TOOL_T(fmt, ...) \
+    do { uint64_t _tm = tickTimer_GetCount(); \
+         LOG_CH(LOG_CH_MAIN, LOG_LEVEL_INFO, COLOR_GREEN, "TOOL", "[%3u.%03us] " fmt, \
+                (unsigned)(_tm / 1000U), (unsigned)(_tm % 1000U), ##__VA_ARGS__); } while (0)
 #endif
 #ifndef TOOL_W
-#define TOOL_W(fmt, ...)  LOG_CH(LOG_CH_MAIN, LOG_LEVEL_WARN, COLOR_YELLOW,"TOOL", fmt, ##__VA_ARGS__)
+#define TOOL_W(fmt, ...) \
+    do { uint64_t _tm = tickTimer_GetCount(); \
+         LOG_CH(LOG_CH_MAIN, LOG_LEVEL_WARN, COLOR_YELLOW,"TOOL", "[%3u.%03us] " fmt, \
+                (unsigned)(_tm / 1000U), (unsigned)(_tm % 1000U), ##__VA_ARGS__); } while (0)
 #endif
 #ifndef TOOL_E
-#define TOOL_E(fmt, ...)  LOG_CH(LOG_CH_MAIN, LOG_LEVEL_ERROR, COLOR_RED,   "TOOL", fmt, ##__VA_ARGS__)
+#define TOOL_E(fmt, ...) \
+    do { uint64_t _tm = tickTimer_GetCount(); \
+         LOG_CH(LOG_CH_MAIN, LOG_LEVEL_ERROR, COLOR_RED,  "TOOL", "[%3u.%03us] " fmt, \
+                (unsigned)(_tm / 1000U), (unsigned)(_tm % 1000U), ##__VA_ARGS__); } while (0)
 #endif
 
 /***************************** 静态变量 ***********************************/
@@ -146,7 +155,10 @@ void UdsTester_Init(void)
 void UdsTester_Poll(void)
 {
     if (s_state == TOOL_TXN_WAIT_RESP) {
-        if (nbDelay_IsComplete(&s_p2_tmr)) {
+        if (isotp_get_tx_state() != ISOTP_TX_IDLE) {
+            /* 多帧请求仍在发送中 (FF/FC/CF 未发完): P2 从发完才起算 */
+            nbDelay_Start(&s_p2_tmr);
+        } else if (nbDelay_IsComplete(&s_p2_tmr)) {
             TOOL_E("P2 timeout (%d ms), SID 0x%02X", (int)TOOL_TIMEOUT_P2_MS, s_req_buf[0]);
             txn_finish(TOOL_TXN_ERR, TOOL_TXN_ERR_TIMEOUT);
         }

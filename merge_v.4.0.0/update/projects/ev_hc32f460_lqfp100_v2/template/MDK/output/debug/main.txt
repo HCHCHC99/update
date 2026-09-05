@@ -201,58 +201,65 @@
                           AREA ||i.main||, CODE, READONLY, ALIGN=2
 
                   main PROC
-;;;112     *=============================================================================*/
-;;;113    int main(void)
+;;;113    volatile int gtest = 0;
+;;;114    int main(void)
 000000  f7fffffe          BL       Hardware_Init
-;;;114    {
-;;;115        Hardware_Init();
-;;;116        MAIN_D("===== main(): UPGRADE TOOL PATH =====\r\n");
-000004  a205              ADR      r2,|L2.28|
-000006  a107              ADR      r1,|L2.36|
+;;;115    {
+;;;116        Hardware_Init();
+;;;117        MAIN_D("===== main(): UPGRADE TOOL PATH =====\r\n");
+000004  a207              ADR      r2,|L2.36|
+000006  a109              ADR      r1,|L2.44|
 000008  2000              MOVS     r0,#0
 00000a  f7fffffe          BL       SEGGER_RTT_printf
-;;;117    
-;;;118        /* 上电自动启动心跳监听与升级流程 */
-;;;119        Tool_Init();
-00000e  f7fffffe          BL       Tool_Init
-;;;120    
-;;;121        {
-;;;122            while (1)
-000012  e001              B        |L2.24|
-                  |L2.20|
-;;;123            {
-;;;124                Tool_Poll();
-000014  f7fffffe          BL       Tool_Poll
-                  |L2.24|
-000018  e7fc              B        |L2.20|
-;;;125            }
-;;;126        }
-;;;127    }
+;;;118      	while(gtest==0){}
+00000e  bf00              NOP      
+                  |L2.16|
+000010  4814              LDR      r0,|L2.100|
+000012  6800              LDR      r0,[r0,#0]  ; gtest
+000014  2800              CMP      r0,#0
+000016  d0fb              BEQ      |L2.16|
+;;;119        /* 上电自动启动心跳监听与升级流程 */
+;;;120        Tool_Init();
+000018  f7fffffe          BL       Tool_Init
+;;;121    
+;;;122        {
+;;;123            while (1)
+00001c  e001              B        |L2.34|
+                  |L2.30|
+;;;124            {
+;;;125                Tool_Poll();
+00001e  f7fffffe          BL       Tool_Poll
+                  |L2.34|
+000022  e7fc              B        |L2.30|
+;;;126            }
+;;;127        }
+;;;128    }
                           ENDP
 
-00001a  0000              DCW      0x0000
-                  |L2.28|
-00001c  4d41494e          DCB      "MAIN",0
-000020  00      
-000021  00                DCB      0
-000022  00                DCB      0
-000023  00                DCB      0
                   |L2.36|
-000024  1b5b3336          DCB      27,"[36m[%s] ===== main(): UPGRADE TOOL PATH =====\r\n",27
-000028  6d5b2573
-00002c  5d203d3d
-000030  3d3d3d20
-000034  6d61696e
-000038  28293a20
-00003c  55504752
-000040  41444520
-000044  544f4f4c
-000048  20504154
-00004c  48203d3d
-000050  3d3d3d0d
-000054  0a1b    
-000056  5b306d0d          DCB      "[0m\r\n",0
-00005a  0a00    
+000024  4d41494e          DCB      "MAIN",0
+000028  00      
+000029  00                DCB      0
+00002a  00                DCB      0
+00002b  00                DCB      0
+                  |L2.44|
+00002c  1b5b3336          DCB      27,"[36m[%s] ===== main(): UPGRADE TOOL PATH =====\r\n",27
+000030  6d5b2573
+000034  5d203d3d
+000038  3d3d3d20
+00003c  6d61696e
+000040  28293a20
+000044  55504752
+000048  41444520
+00004c  544f4f4c
+000050  20504154
+000054  48203d3d
+000058  3d3d3d0d
+00005c  0a1b    
+00005e  5b306d0d          DCB      "[0m\r\n",0
+000062  0a00    
+                  |L2.100|
+                          DCD      gtest
 
                           AREA ||.bss||, DATA, NOINIT, ALIGN=3
 
@@ -378,14 +385,19 @@
 000101  5b306d0d
 000105  0a00    
 
+                          AREA ||.data||, DATA, ALIGN=2
+
+                  gtest
+                          DCD      0x00000000
+
 ;*** Start embedded assembler ***
 
 #line 1 "..\\source\\main.c"
 	AREA ||.rev16_text||, CODE
 	THUMB
-	EXPORT |__asm___6_main_c_main____REV16|
+	EXPORT |__asm___6_main_c_gtest____REV16|
 #line 481 "../../../../drivers/cmsis/Include/cmsis_armcc.h"
-|__asm___6_main_c_main____REV16| PROC
+|__asm___6_main_c_gtest____REV16| PROC
 #line 482
 
  rev16 r0, r0
@@ -393,9 +405,9 @@
 	ENDP
 	AREA ||.revsh_text||, CODE
 	THUMB
-	EXPORT |__asm___6_main_c_main____REVSH|
+	EXPORT |__asm___6_main_c_gtest____REVSH|
 #line 496
-|__asm___6_main_c_main____REVSH| PROC
+|__asm___6_main_c_gtest____REVSH| PROC
 #line 497
 
  revsh r0, r0
@@ -403,9 +415,9 @@
 	ENDP
 	AREA ||.rrx_text||, CODE
 	THUMB
-	EXPORT |__asm___6_main_c_main____RRX|
+	EXPORT |__asm___6_main_c_gtest____RRX|
 #line 683
-|__asm___6_main_c_main____RRX| PROC
+|__asm___6_main_c_gtest____RRX| PROC
 #line 684
 
  rrx r0, r0

@@ -315,21 +315,21 @@ static const char* isotp_ota_annotate(uint32_t can_id, uint8_t* data)
 
     if (can_id == 0x18DA03F1) {
         /* ---- 工装 -> 产品 请求 ---- */
-        if (frame_type == ISOTP_FRAME_CONSECUTIVE)  return "36 cont";
+        if (frame_type == ISOTP_FRAME_CONSECUTIVE)  return "<--36 cont";
         if (frame_type == ISOTP_FRAME_FLOW_CONTROL) return "";
         if (frame_type == ISOTP_FRAME_FIRST) {
             p = &data[2];   /* FF: byte1 是长度低字节, UDS payload 从 byte2 起 */
         }
         switch (p[0]) {
-            case 0x10: return (p[1] == 0x03U) ? "10 03 extSess" : "10 02 progSess";
-            case 0x27: return (p[1] == 0x01U) ? "27 01 reqSeed" : "27 02 sendKey";
-            case 0x31: return "31 FF02 enterBL";
-            case 0x34: return "34 dlReq";
+            case 0x10: return (p[1] == 0x03U) ? "<--10 03 extSess" : "<--10 02 progSess";
+            case 0x27: return (p[1] == 0x01U) ? "<--27 01 reqSeed" : "<--27 02 sendKey";
+            case 0x31: return "<--31 FF02 enterBL";
+            case 0x34: return "<--34 dlReq";
             case 0x36:
-                sprintf(s_buf, "36 blk seq=%02X", p[1]);
+                sprintf(s_buf, "<--36 blk seq=%02X", p[1]);
                 return s_buf;
-            case 0x37: return "37 txExit";
-            case 0x11: return "11 01 ecuReset";
+            case 0x37: return "<--37 txExit";
+            case 0x11: return "<--11 01 ecuReset";
             default:   return "";
         }
     }
