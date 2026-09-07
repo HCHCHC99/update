@@ -32,8 +32,8 @@
 
 /* 固件镜像由烧录器预烧在工装内部 Flash，升级时全量发出 */
 #define TOOL_FW_STORE_ADDR          0x0001A000UL    /* 镜像存储起始地址 */
-#define TOOL_FW_SIZE                0x0002A000UL    /* 168KB */
-
+//#define TOOL_FW_SIZE                0x0002A000UL    /* 168KB */
+#define TOOL_FW_SIZE                0x00018000UL    /* 96KB */
 /***************************** 下载参数 *********************************/
 
 /* 0x34 请求下载的目标地址标签 (产品端映射: 0x08018000 -> APP1 0x1A000) */
@@ -53,6 +53,7 @@
 #define TOOL_TIMEOUT_FC_WAIT_MS     10000UL  /* ISO-TP 流控帧等待超时 N_Bs (isotp 层) */
 #define TOOL_TIMEOUT_BOOT_READY_MS  15000UL  /* 31 01 后等待 71 01 FF 00 超时 */
 #define TOOL_TIMEOUT_RESET_ACK_MS   15000UL  /* 11 01 后等待 51 01 超时 */
+#define TOOL_DONE_SETTLE_MS         3000UL   /* 升级成功后静默期: 丢弃残留心跳, 等新 APP 心跳稳定再判版本 */
 
 /***************************** 重试策略 *********************************/
 
