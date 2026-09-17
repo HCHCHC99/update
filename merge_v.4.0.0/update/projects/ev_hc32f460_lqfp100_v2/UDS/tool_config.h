@@ -20,24 +20,25 @@
 #define TOOL_CANID_HEARTBEAT        0x18FF1108UL    /* 产品心跳 (工装接收) */
 #define TOOL_CANID_STATUS           0x18FF1109UL    /* 工装步骤上报 (工装发送) */
 
-/* 心跳帧版本号所在字节索引 */
-#define TOOL_HB_VER_BYTE_IDX        3U
-
-/* 工装自身固件版本号 (与心跳 byte[TOOL_HB_VER_BYTE_IDX] 比较用) */
-#define TOOL_FW_VERSION             3U
-
 /* 心跳版本确认帧数: 连续 N 帧版本一致才判定可信并允许触发升级 */
 #define TOOL_HB_CONFIRM_CNT         10U
 
 /***************************** 工装固件版本 *********************************/
 
+/* 工装自身固件版本: 主版本.次版本 (与心跳版本比较用)
+ * 心跳帧版本布局由产品 build_can_1108 定死, 工装按固定位置读取:
+ * byte[0..3]=主版本4位十进制(千/百/十/个), byte[4..7]=次版本4位十进制
+ * 折算值 = 主*10000+次 (0003.0000 -> 30000), 直接数值比较 */
+#define TOOL_FW_VER_MAJOR           0113U
+#define TOOL_FW_VER_MINOR           0002U
+#define TOOL_FW_VERSION_NUM         ((TOOL_FW_VER_MAJOR) * 10000UL + (TOOL_FW_VER_MINOR))
 
 /***************************** 本地固件镜像 *********************************/
 
 /* 固件镜像由烧录器预烧在工装内部 Flash，升级时全量发出 */
 #define TOOL_FW_STORE_ADDR          0x0001A000UL    /* 镜像存储起始地址 */
-//#define TOOL_FW_SIZE                0x0002A000UL    /* 168KB */
-#define TOOL_FW_SIZE                0x00018000UL    /* 96KB */
+#define TOOL_FW_SIZE                0x0002A000UL    /* 168KB */
+//#define TOOL_FW_SIZE                0x00018000UL    /* 96KB */
 /***************************** 下载参数 *********************************/
 
 /* 0x34 请求下载的目标地址标签 (产品端映射: 0x08018000 -> APP1 0x1A000) */

@@ -91,9 +91,9 @@ static uint8_t  s_flow_retry = 0;
 
 /* 心跳 */
 static volatile uint8_t s_hb_flag = 0;
-static volatile uint8_t s_hb_ver = 0;
+static volatile uint32_t s_hb_ver = 0;  /* 心跳版本折算值 MMMMmmmm (0002.2000 -> 22000) */
 static uint8_t s_hb_cnt = 0;            /* 连续一致心跳帧计数 */
-static uint8_t s_hb_last = 0xFFU;       /* 上一帧心跳版本 (0xFF=无历史, 避免与真实版本撞车) */
+static uint32_t s_hb_last = 0xFFFFFFFFUL; /* 上一帧心跳版本 (MAX=无历史, 避免与真实版本撞车) */
 
 /* 步骤上报 */
 static uint8_t s_rpt_step = 0xFFU;      /* 上次上报值 (0xFF 强制首发) */
@@ -148,9 +148,17 @@ static void status_report(uint8_t step, uint8_t param, uint8_t detail)
 
 static void Hb_RxCallback(const CanMsg_t *msg)
 {
-    if ((msg != NULL) && (msg->u8DLC > TOOL_HB_VER_BYTE_IDX)) {
+    if ((msg != NULL) && (msg->u8DLC >= 8U)) {
         /* 心跳帧 1s 一条, 打印量太大且会挤掉 RTT 其他日志, 不打印 */
-        s_hb_ver = msg->au8Data[TOOL_HB_VER_BYTE_IDX];
+        /* 版本布局由产品 build_can_1108 定死: byte[0..3]=主版本4位十进制, byte[4..7]=次版本4位十进制 */
+        const uint8_t *d = msg->au8Data;
+        uint32_t major = ((uint32_t)d[0] * 1000U) + ((uint32_t)d[1] * 100U)
+                       + ((uint32_t)d[2] * 10U) + d[3];
+        uint32_t minor = ((uint32_t)d[4] * 1000U) + ((uint32_t)d[5] * 100U)
+                       + ((uint32_t)d[6] * 10U) + d[7];
+
+        /* 折算为 8 位十进制数值: 0002.2000 -> 22000, 直接数值比较 */
+        s_hb_ver = (major * 10000U) + minor;
         s_hb_flag = 1U;
     }
 }
@@ -179,7 +187,7 @@ static void goto_state(tool_state_t st)
             break;
         case TOOL_ST_LISTEN:
             s_hb_cnt = 0U;          /* 每次进入监听都重新累计连续一致心跳 */
-            s_hb_last = 0xFFU;
+            s_hb_last = 0xFFFFFFFFUL;
             nbDelay_Stop(&s_stage_tmr);
             break;
         default:
@@ -235,24 +243,31 @@ static uint8_t unsolicited_sid(void)
 static void st_listen(void)
 {
     if (s_hb_flag != 0U) {
+        uint32_t ver = s_hb_ver;    /* 快照, 避免判断期间被新心跳改写 */
+        uint32_t mj;
+
         s_hb_flag = 0U;
         /* 版本防抖: 连续 TOOL_HB_CONFIRM_CNT 帧版本一致才判定可信,
          * 防止升级后新旧心跳交替/异常帧导致误触发第二轮 */
-        if (s_hb_ver == s_hb_last) {
+        if (ver == s_hb_last) {
             if (s_hb_cnt < TOOL_HB_CONFIRM_CNT) {
                 s_hb_cnt++;
             }
         } else {
-            s_hb_last = s_hb_ver;
+            s_hb_last = ver;
             s_hb_cnt = 1U;
         }
         if (s_hb_cnt < TOOL_HB_CONFIRM_CNT) {
             return;                     /* 确认帧数不足, 版本未定, 不判断 */
         }
-        if (TOOL_FW_VERSION > s_hb_ver) {
-            TOOL_I("Upgrade triggered: product ver=0x%02X < tool ver=0x%02X (hb x%d)",
-                   s_hb_ver, TOOL_FW_VERSION, (int)s_hb_cnt);
-            status_report(TOOL_STEP_VERSION_OK, s_hb_ver, 0U);
+        if (TOOL_FW_VERSION_NUM > ver) {
+            mj = ver / 10000U;
+            TOOL_I("Upgrade triggered: product ver=%04d.%04d < tool ver=%04d.%04d (hb x%d)",
+                   (int)mj, (int)(ver % 10000U),
+                   (int)TOOL_FW_VER_MAJOR, (int)TOOL_FW_VER_MINOR, (int)s_hb_cnt);
+            /* 状态帧 byte[1] 仅 1 字节: 上报主版本低2位BCD (0002.x->0x02, 0017.x->0x17) */
+            status_report(TOOL_STEP_VERSION_OK,
+                          (uint8_t)(((mj / 10U) % 10U) * 16U + (mj % 10U)), 0U);
             s_in_boot = 0;
             /* 注意: s_flow_retry 不在此清零, 保证整流程失败 x2 后真正停机 */
             goto_state(TOOL_ST_EXT_SESSION);
@@ -590,9 +605,10 @@ static void st_wait_5101(void)
     /* s_stage_tmr 在 goto_state 进入 WAIT_5101 时启动 */
     if (nbDelay_IsComplete(&s_stage_tmr)) {
         /* 兜底: 若心跳显示版本已更新, 同样视为成功 */
-        if ((s_hb_flag != 0U) && (s_hb_ver >= TOOL_FW_VERSION)) {
+        if ((s_hb_flag != 0U) && (s_hb_ver >= TOOL_FW_VERSION_NUM)) {
             s_hb_flag = 0U;
-            TOOL_I("51 01 missed but heartbeat ver=0x%02X, upgrade done", s_hb_ver);
+            TOOL_I("51 01 missed but heartbeat ver=%04d.%04d, upgrade done",
+                   (int)(s_hb_ver / 10000U), (int)(s_hb_ver % 10000U));
             status_report(TOOL_STEP_DONE, 100U, 0U);
             s_flow_retry = 0;
             s_in_boot = 0;
@@ -650,7 +666,8 @@ void Tool_Init(void)
     nbDelay_Start(&s_poll_tmr);
     nbDelay_Init(&s_done_tmr, TOOL_DONE_SETTLE_MS);
     status_report(TOOL_STEP_IDLE, 0U, 0U);
-    TOOL_I("=== Upgrade Tool ready, TOOL_FW_VERSION=0x%02X ===", TOOL_FW_VERSION);
+    TOOL_I("=== Upgrade Tool ready, ver=%04d.%04d ===",
+           (int)TOOL_FW_VER_MAJOR, (int)TOOL_FW_VER_MINOR);
 }
 
 void Tool_Poll(void)

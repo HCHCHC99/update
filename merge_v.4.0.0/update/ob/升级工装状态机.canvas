@@ -1,0 +1,284 @@
+{
+	"nodes": [
+		{
+			"id": "n_listen",
+			"type": "text",
+			"text": "**LISTEN**\n监听心跳 0x18FF1108\nbyte[0..3]=主版本4位十进制\nbyte[4..7]=次版本4位十进制\n折算 主*10000+次 数值比较\nver < 工装ver → 触发升级",
+			"x": 0,
+			"y": 0,
+			"width": 280,
+			"height": 120,
+			"color": "5"
+		},
+		{
+			"id": "n_ext",
+			"type": "text",
+			"text": "**EXT_SESSION**\n10 03 扩展会话\n期望 50 03",
+			"x": 340,
+			"y": 0,
+			"width": 260,
+			"height": 120
+		},
+		{
+			"id": "n_uapp",
+			"type": "text",
+			"text": "**UNLOCK_APP**\n27 01 取seed → 27 02 发key\n重试必须复位后重新取seed\n(否则 NRC 0x24)",
+			"x": 680,
+			"y": 0,
+			"width": 260,
+			"height": 140
+		},
+		{
+			"id": "n_jump",
+			"type": "text",
+			"text": "**JUMP_BOOT**\n31 01 请求进boot例程\n产品静默复位, 无响应属正常",
+			"x": 1020,
+			"y": 0,
+			"width": 260,
+			"height": 120
+		},
+		{
+			"id": "n_waitboot",
+			"type": "text",
+			"text": "**WAIT_BOOT**\n等boot补发 71 01 FF 00\n超时 15s (BOOT_READY)",
+			"x": 1020,
+			"y": 200,
+			"width": 260,
+			"height": 120,
+			"color": "3"
+		},
+		{
+			"id": "n_prog",
+			"type": "text",
+			"text": "**PROG_SESSION**\n10 02 编程会话\n期望 50 02",
+			"x": 1360,
+			"y": 0,
+			"width": 260,
+			"height": 120
+		},
+		{
+			"id": "n_uboot",
+			"type": "text",
+			"text": "**UNLOCK_BOOT**\n27 01/02\nboot上下文重新解锁",
+			"x": 1700,
+			"y": 0,
+			"width": 260,
+			"height": 120
+		},
+		{
+			"id": "n_dlreq",
+			"type": "text",
+			"text": "**DL_REQ**\n34 请求下载\n0x08018000 + 96KB\n(产品映射到 APP1 区 0x1A000)",
+			"x": 2040,
+			"y": 0,
+			"width": 260,
+			"height": 140
+		},
+		{
+			"id": "n_transfer",
+			"type": "text",
+			"text": "**TRANSFER**\n36 x N 按块发送 256B\n逐块等 76, 单块重发 ≤3 次\nP2 从最后一个 CF 发完才计时\nseq: 1..N, 0xFF 后回绕 1",
+			"x": 2380,
+			"y": 0,
+			"width": 280,
+			"height": 160
+		},
+		{
+			"id": "n_exit",
+			"type": "text",
+			"text": "**EXIT**\n37 退出传输\n期望 77",
+			"x": 2740,
+			"y": 0,
+			"width": 240,
+			"height": 120
+		},
+		{
+			"id": "n_reset",
+			"type": "text",
+			"text": "**ECU_RESET**\n11 01 复位\n产品静默复位\nTXN_OK 即成功(已含51 01)",
+			"x": 3060,
+			"y": 0,
+			"width": 260,
+			"height": 140
+		},
+		{
+			"id": "n_wait5101",
+			"type": "text",
+			"text": "**WAIT_5101**\n等APP补发 51 01, 超时 15s\n兜底: 心跳版本 ≥ 工装ver\n同样判升级成功",
+			"x": 3400,
+			"y": 0,
+			"width": 260,
+			"height": 140
+		},
+		{
+			"id": "n_done",
+			"type": "text",
+			"text": "**DONE_DELAY**\n静默 3s 丢弃残留/在途心跳\n只认静默期结束后收到的心跳",
+			"x": 3740,
+			"y": 0,
+			"width": 280,
+			"height": 120,
+			"color": "3"
+		},
+		{
+			"id": "n_retry",
+			"type": "text",
+			"text": "**RETRY_DELAY**\n延迟 2s 回 LISTEN 重新累计心跳\n整流程重试 ≤2 次 (总尝试 3)",
+			"x": 680,
+			"y": 320,
+			"width": 280,
+			"height": 120,
+			"color": "2"
+		},
+		{
+			"id": "n_error",
+			"type": "text",
+			"text": "**ERROR**\n错误停机\n上报 step=0x0F (byte[1]=错误码)\n需重新上电恢复",
+			"x": 1360,
+			"y": 320,
+			"width": 280,
+			"height": 120,
+			"color": "1"
+		},
+		{
+			"id": "n_note",
+			"type": "text",
+			"text": "**flow_fail 规则 (upgrade_tool.c)**\n任一状态超时 / 否定响应 → flow_fail(err, detail):\n- 重试未耗尽 → RETRY_DELAY (2s) → LISTEN\n- 耗尽 → ERROR 停机 (err=0x06 FLOW_RETRY_EXHAUST)\n- NRC 0x22 单独处理: 延迟 5s 从当前步骤重试 (≤3 次)\n- 0x36 单块失败: 整块重发 ≤3 次, 不走整流程重试\n\n心跳防抖 (TOOL_HB_CONFIRM_CNT=3):\n连续 3 帧版本一致才判定可信; 进入 LISTEN 时计数清零重新累计\n升级成功后静默期防止旧版本残留心跳误触发第二轮刷写",
+			"x": 0,
+			"y": 320,
+			"width": 620,
+			"height": 220,
+			"color": "6"
+		},
+		{
+			"id": "n_cfg",
+			"type": "text",
+			"text": "**关键配置 (tool_config.h)**\n工装 ver=0003.0000 (MAJOR.MINOR) · 镜像 0x1A000 起 96KB\n心跳版本 8位十进制: byte[0..3]=主, byte[4..7]=次\n块大小 256B (必须4字节对齐, 否则 Flash 编程挂死)\nP2=5s · N_Bs=10s · BOOT_READY=15s · RESET_ACK=15s · SETTLE=3s\n状态上报 0x18FF1109: byte0=step, byte1=param, byte2=detail",
+			"x": 3740,
+			"y": 320,
+			"width": 400,
+			"height": 160
+		}
+	],
+	"edges": [
+		{
+			"id": "e1",
+			"fromNode": "n_listen",
+			"toNode": "n_ext",
+			"label": "3帧可信 & ver<工装ver"
+		},
+		{
+			"id": "e2",
+			"fromNode": "n_ext",
+			"toNode": "n_uapp",
+			"label": "50 03"
+		},
+		{
+			"id": "e3",
+			"fromNode": "n_uapp",
+			"toNode": "n_jump",
+			"label": "67 02 解锁成功"
+		},
+		{
+			"id": "e4",
+			"fromNode": "n_jump",
+			"toNode": "n_prog",
+			"label": "71 01 正常响应→直接进10 02"
+		},
+		{
+			"id": "e5",
+			"fromNode": "n_jump",
+			"toNode": "n_waitboot",
+			"label": "无响应(静默复位)"
+		},
+		{
+			"id": "e6",
+			"fromNode": "n_waitboot",
+			"toNode": "n_prog",
+			"label": "71 01 FF 00"
+		},
+		{
+			"id": "e7",
+			"fromNode": "n_prog",
+			"toNode": "n_uboot",
+			"label": "50 02"
+		},
+		{
+			"id": "e8",
+			"fromNode": "n_uboot",
+			"toNode": "n_dlreq",
+			"label": "67 02"
+		},
+		{
+			"id": "e9",
+			"fromNode": "n_dlreq",
+			"toNode": "n_transfer",
+			"label": "74"
+		},
+		{
+			"id": "e10",
+			"fromNode": "n_transfer",
+			"toNode": "n_exit",
+			"label": "76 全部块完成"
+		},
+		{
+			"id": "e11",
+			"fromNode": "n_exit",
+			"toNode": "n_reset",
+			"label": "77"
+		},
+		{
+			"id": "e12",
+			"fromNode": "n_reset",
+			"toNode": "n_wait5101",
+			"label": "发送后复位等待"
+		},
+		{
+			"id": "e13",
+			"fromNode": "n_wait5101",
+			"toNode": "n_done",
+			"label": "51 01 / 心跳版本兜底"
+		},
+		{
+			"id": "e14",
+			"fromNode": "n_done",
+			"toNode": "n_listen",
+			"label": "3s结束, 重新累计心跳",
+			"fromSide": "bottom",
+			"toSide": "bottom"
+		},
+		{
+			"id": "e15",
+			"fromNode": "n_ext",
+			"toNode": "n_retry",
+			"label": "P2超时/NRC",
+			"fromSide": "bottom"
+		},
+		{
+			"id": "e16",
+			"fromNode": "n_waitboot",
+			"toNode": "n_retry",
+			"label": "71超时"
+		},
+		{
+			"id": "e17",
+			"fromNode": "n_wait5101",
+			"toNode": "n_error",
+			"label": "51超时且版本未达标",
+			"fromSide": "bottom"
+		},
+		{
+			"id": "e18",
+			"fromNode": "n_retry",
+			"toNode": "n_listen",
+			"label": "重试",
+			"toSide": "bottom"
+		},
+		{
+			"id": "e19",
+			"fromNode": "n_retry",
+			"toNode": "n_error",
+			"label": "重试耗尽"
+		}
+	]
+}
