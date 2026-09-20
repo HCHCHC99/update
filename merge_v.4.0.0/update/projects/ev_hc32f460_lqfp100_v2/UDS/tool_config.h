@@ -19,6 +19,8 @@
 /* 工装/产品 私有帧 */
 #define TOOL_CANID_HEARTBEAT        0x18FF1108UL    /* 产品心跳 (工装接收) */
 #define TOOL_CANID_STATUS           0x18FF1109UL    /* 工装步骤上报 (工装发送) */
+#define TOOL_CANID_TAG              0x18FF5818UL    /* 工装身份标识 (工装发送, 产品借此区分 TBOX/工装) */
+#define TOOL_TAG_PERIOD_MS          100U            /* 身份标识帧发送周期 */
 
 /* 心跳版本确认帧数: 连续 N 帧版本一致才判定可信并允许触发升级 */
 #define TOOL_HB_CONFIRM_CNT         10U

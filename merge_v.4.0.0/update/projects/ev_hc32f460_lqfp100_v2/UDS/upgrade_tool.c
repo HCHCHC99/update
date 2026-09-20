@@ -105,6 +105,7 @@ static NonBlockingDelay_t s_flow_retry_tmr;  /* 整流程失败重试延时 */
 static NonBlockingDelay_t s_stage_tmr;       /* WAIT_BOOT / WAIT_5101 阶段超时 */
 static NonBlockingDelay_t s_poll_tmr;        /* 1ms 轮询门控 */
 static NonBlockingDelay_t s_done_tmr;        /* 升级成功后静默期 */
+static NonBlockingDelay_t s_tag_tmr;         /* 身份标识帧周期 */
 
 /***************************** 步骤上报 ***********************************/
 
@@ -142,6 +143,26 @@ static void status_report(uint8_t step, uint8_t param, uint8_t detail)
     s_rpt_param = param;
     s_rpt_detail = detail;
     status_send();
+}
+
+/***************************** 身份标识帧 *********************************/
+
+/* 发送一帧身份标识 (0x18FF5818: 00 00 00 01, 产品借此区分 TBOX/工装) */
+static void tag_send(void)
+{
+    CanMsg_t msg;
+
+    msg.u32ID = TOOL_CANID_TAG;
+    msg.u8IDE = 1U;
+    msg.u8RTR = 0U;
+    msg.u8FDF = 0U;
+    msg.u8BRS = 0U;
+    msg.u8DLC = 4U;
+    msg.au8Data[0] = 0U;
+    msg.au8Data[1] = 0U;
+    msg.au8Data[2] = 0U;
+    msg.au8Data[3] = 1U;
+    (void)CanIf_Send(&msg);
 }
 
 /***************************** 心跳接收 ***********************************/
@@ -665,6 +686,9 @@ void Tool_Init(void)
     nbDelay_Init(&s_poll_tmr, 1U);
     nbDelay_Start(&s_poll_tmr);
     nbDelay_Init(&s_done_tmr, TOOL_DONE_SETTLE_MS);
+    nbDelay_Init(&s_tag_tmr, TOOL_TAG_PERIOD_MS);
+    tag_send();                     /* 上电先发一帧身份标识, 再进周期发送 */
+    nbDelay_Start(&s_tag_tmr);
     status_report(TOOL_STEP_IDLE, 0U, 0U);
     TOOL_I("=== Upgrade Tool ready, ver=%04d.%04d ===",
            (int)TOOL_FW_VER_MAJOR, (int)TOOL_FW_VER_MINOR);
@@ -680,6 +704,12 @@ void Tool_Poll(void)
         nbDelay_Start(&s_poll_tmr);
         isotp_ms_update();
         isotp_tx_process();
+    }
+
+    /* 身份标识: 100ms 周期持续发送, 与状态机无关 (产品借此区分 TBOX/工装) */
+    if (nbDelay_IsComplete(&s_tag_tmr)) {
+        tag_send();
+        nbDelay_Start(&s_tag_tmr);
     }
 
     switch (s_state) {
