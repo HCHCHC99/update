@@ -10,15 +10,15 @@
 000000  b500              PUSH     {lr}
 ;;;39       {
 000002  b099              SUB      sp,sp,#0x64
-;;;40           // ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ?4ÔøΩÔøΩÕ®ÔøΩÔøΩ»´ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ–ßÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ◊™Õ®ÔøΩÔøΩ’ºÔøΩ’±»∑ÔøΩÔøΩÔøΩ µÔøΩ÷£ÔøΩ
-;;;41           // ∆µÔøΩ £ÔøΩ20kHzÔøΩÔøΩÔøΩÔøΩ º’ºÔøΩ’±»£ÔøΩ0%
+;;;40           //           ?4  ?  ?      ßπ      ??  ? ??   ? ? 
+;;;41           // ? ? 20kHz    ?? ?? 0%
 ;;;42     
-;;;43           // ÔøΩÔøΩÔøΩÔøΩGPIOÔøΩÔøΩÔøΩË£®ÔøΩÔøΩÔøΩÔøΩÔøΩﬁ∏ÔøΩGPIOÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ√£ÔøΩ
+;;;43           //     GPIO   Ò‘     ? GPIO       ? 
 ;;;44           LL_PERIPH_WE(LL_PERIPH_GPIO);
 000004  2004              MOVS     r0,#4
 000006  f7fffffe          BL       LL_PERIPH_WE
 ;;;45     
-;;;46           // CH1: PB6 - ÔøΩÔøΩÔøΩÔøΩ–ß
+;;;46           // CH1: PB6 -     ßπ
 ;;;47           g_motor_pwm_ch1 = PWM_Init(CM_TMRA_4, FCG2_PERIPH_TMRA_4, TMRA_CH1,
 00000a  2000              MOVS     r0,#0
 00000c  f2417270          MOV      r2,#0x1770
@@ -44,7 +44,7 @@
 ;;;49                                       TMRA_MD_SAWTOOTH, TMRA_DIR_UP,
 ;;;50                                       6000, 0, PWM_ACTIVE_LOW);
 ;;;51     
-;;;52           // CH2: PB7 - ÔøΩÔøΩÔøΩÔøΩ–ß
+;;;52           // CH2: PB7 -     ßπ
 ;;;53           g_motor_pwm_ch2 = PWM_Init(CM_TMRA_4, FCG2_PERIPH_TMRA_4, TMRA_CH2,
 00003e  2000              MOVS     r0,#0
 000040  f2417270          MOV      r2,#0x1770
@@ -69,7 +69,7 @@
 ;;;55                                       TMRA_MD_SAWTOOTH, TMRA_DIR_UP,
 ;;;56                                       6000, 0, PWM_ACTIVE_LOW);
 ;;;57     
-;;;58           // CH3: PB8 - ÔøΩÔøΩÔøΩÔøΩ–ß
+;;;58           // CH3: PB8 -     ßπ
 ;;;59           g_motor_pwm_ch3 = PWM_Init(CM_TMRA_4, FCG2_PERIPH_TMRA_4, TMRA_CH3,
 000070  2000              MOVS     r0,#0
 000072  f2417270          MOV      r2,#0x1770
@@ -95,7 +95,7 @@
 ;;;61                                       TMRA_MD_SAWTOOTH, TMRA_DIR_UP,
 ;;;62                                       6000, 0, PWM_ACTIVE_LOW);
 ;;;63     
-;;;64           // CH4: PB9 - ÔøΩÔøΩÔøΩÔøΩ–ß
+;;;64           // CH4: PB9 -     ßπ
 ;;;65           g_motor_pwm_ch4 = PWM_Init(CM_TMRA_4, FCG2_PERIPH_TMRA_4, TMRA_CH4,
 0000a4  2000              MOVS     r0,#0
 0000a6  f2417270          MOV      r2,#0x1770
@@ -121,17 +121,17 @@
 ;;;67                                       TMRA_MD_SAWTOOTH, TMRA_DIR_UP,
 ;;;68                                       6000, 0, PWM_ACTIVE_LOW);
 ;;;69     
-;;;70           // ÔøΩÔøΩÔøΩÔøΩGPIOÔøΩÔøΩÔøΩË£®ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ√∫ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ????
+;;;70           //     GPIO   Ò‘      ®≤       ????
 ;;;71           LL_PERIPH_WP(LL_PERIPH_GPIO);
 0000d8  2004              MOVS     r0,#4
 0000da  f7fffffe          BL       LL_PERIPH_WP
 ;;;72     
-;;;73           // ÔøΩÔøΩÔøΩÔøΩFCGÔøΩÔøΩÔøΩË£® πÔøΩ‹∂ÔøΩ ±ÔøΩÔøΩ ±ÔøΩ”£ÔøΩ
+;;;73           //     FCG   Ò‘? ? ?  ? ? 
 ;;;74           LL_PERIPH_WE(LL_PERIPH_FCG);
 0000de  2002              MOVS     r0,#2
 0000e0  f7fffffe          BL       LL_PERIPH_WE
 ;;;75     
-;;;76           // ÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩPWMÔøΩÔøΩ ±ÔøΩÔøΩ
+;;;76           //         PWM  ?  
 ;;;77           PWM_Start(&g_motor_pwm_ch1);
 0000e4  4813              LDR      r0,|L1.308|
 0000e6  f7fffffe          BL       PWM_Start
@@ -145,7 +145,7 @@
 0000f6  4812              LDR      r0,|L1.320|
 0000f8  f7fffffe          BL       PWM_Start
 ;;;81     
-;;;82           //  πÔøΩÔøΩÔøΩÔøΩÔøΩ????
+;;;82           // ?     ????
 ;;;83           PWM_OutputCmd(&g_motor_pwm_ch1, PWM_OUTPUT_ENABLE);
 0000fc  2101              MOVS     r1,#1
 0000fe  480d              LDR      r0,|L1.308|
@@ -163,7 +163,7 @@
 000116  480a              LDR      r0,|L1.320|
 000118  f7fffffe          BL       PWM_OutputCmd
 ;;;87     
-;;;88           // ÔøΩÔøΩÔøΩÔøΩFCGÔøΩÔøΩÔøΩÔøΩ
+;;;88           //     FCG    
 ;;;89           LL_PERIPH_WP(LL_PERIPH_FCG);
 00011c  2002              MOVS     r0,#2
 00011e  f7fffffe          BL       LL_PERIPH_WP
@@ -201,65 +201,58 @@
                           AREA ||i.main||, CODE, READONLY, ALIGN=2
 
                   main PROC
-;;;113    volatile int gtest = 0;
+;;;113    //volatile int gtest = 0;
 ;;;114    int main(void)
 000000  f7fffffe          BL       Hardware_Init
 ;;;115    {
 ;;;116        Hardware_Init();
 ;;;117        MAIN_D("===== main(): UPGRADE TOOL PATH =====\r\n");
-000004  a207              ADR      r2,|L2.36|
-000006  a109              ADR      r1,|L2.44|
+000004  a205              ADR      r2,|L2.28|
+000006  a107              ADR      r1,|L2.36|
 000008  2000              MOVS     r0,#0
 00000a  f7fffffe          BL       SEGGER_RTT_printf
-;;;118      	while(gtest==0){}
-00000e  bf00              NOP      
-                  |L2.16|
-000010  4814              LDR      r0,|L2.100|
-000012  6800              LDR      r0,[r0,#0]  ; gtest
-000014  2800              CMP      r0,#0
-000016  d0fb              BEQ      |L2.16|
-;;;119        /* ‰∏äÁîµËá™Âä®ÂêØÂä®ÂøÉË∑≥ÁõëÂê¨‰∏éÂçáÁ∫ßÊµÅÁ®ã */
+;;;118      	//while(gtest==0){}
+;;;119        /* …œµÁ◊‘∂Ø∆Ù∂Ø–ƒÃ¯º‡Ã˝”Î…˝º∂¡˜≥Ã */
 ;;;120        Tool_Init();
-000018  f7fffffe          BL       Tool_Init
+00000e  f7fffffe          BL       Tool_Init
 ;;;121    
 ;;;122        {
 ;;;123            while (1)
-00001c  e001              B        |L2.34|
-                  |L2.30|
+000012  e001              B        |L2.24|
+                  |L2.20|
 ;;;124            {
 ;;;125                Tool_Poll();
-00001e  f7fffffe          BL       Tool_Poll
-                  |L2.34|
-000022  e7fc              B        |L2.30|
+000014  f7fffffe          BL       Tool_Poll
+                  |L2.24|
+000018  e7fc              B        |L2.20|
 ;;;126            }
 ;;;127        }
 ;;;128    }
                           ENDP
 
+00001a  0000              DCW      0x0000
+                  |L2.28|
+00001c  4d41494e          DCB      "MAIN",0
+000020  00      
+000021  00                DCB      0
+000022  00                DCB      0
+000023  00                DCB      0
                   |L2.36|
-000024  4d41494e          DCB      "MAIN",0
-000028  00      
-000029  00                DCB      0
-00002a  00                DCB      0
-00002b  00                DCB      0
-                  |L2.44|
-00002c  1b5b3336          DCB      27,"[36m[%s] ===== main(): UPGRADE TOOL PATH =====\r\n",27
-000030  6d5b2573
-000034  5d203d3d
-000038  3d3d3d20
-00003c  6d61696e
-000040  28293a20
-000044  55504752
-000048  41444520
-00004c  544f4f4c
-000050  20504154
-000054  48203d3d
-000058  3d3d3d0d
-00005c  0a1b    
-00005e  5b306d0d          DCB      "[0m\r\n",0
-000062  0a00    
-                  |L2.100|
-                          DCD      gtest
+000024  1b5b3336          DCB      27,"[36m[%s] ===== main(): UPGRADE TOOL PATH =====\r\n",27
+000028  6d5b2573
+00002c  5d203d3d
+000030  3d3d3d20
+000034  6d61696e
+000038  28293a20
+00003c  55504752
+000040  41444520
+000044  544f4f4c
+000048  20504154
+00004c  48203d3d
+000050  3d3d3d0d
+000054  0a1b    
+000056  5b306d0d          DCB      "[0m\r\n",0
+00005a  0a00    
 
                           AREA ||.bss||, DATA, NOINIT, ALIGN=3
 
@@ -385,19 +378,14 @@
 000101  5b306d0d
 000105  0a00    
 
-                          AREA ||.data||, DATA, ALIGN=2
-
-                  gtest
-                          DCD      0x00000000
-
 ;*** Start embedded assembler ***
 
 #line 1 "..\\source\\main.c"
 	AREA ||.rev16_text||, CODE
 	THUMB
-	EXPORT |__asm___6_main_c_gtest____REV16|
+	EXPORT |__asm___6_main_c_main____REV16|
 #line 481 "../../../../drivers/cmsis/Include/cmsis_armcc.h"
-|__asm___6_main_c_gtest____REV16| PROC
+|__asm___6_main_c_main____REV16| PROC
 #line 482
 
  rev16 r0, r0
@@ -405,9 +393,9 @@
 	ENDP
 	AREA ||.revsh_text||, CODE
 	THUMB
-	EXPORT |__asm___6_main_c_gtest____REVSH|
+	EXPORT |__asm___6_main_c_main____REVSH|
 #line 496
-|__asm___6_main_c_gtest____REVSH| PROC
+|__asm___6_main_c_main____REVSH| PROC
 #line 497
 
  revsh r0, r0
@@ -415,9 +403,9 @@
 	ENDP
 	AREA ||.rrx_text||, CODE
 	THUMB
-	EXPORT |__asm___6_main_c_gtest____RRX|
+	EXPORT |__asm___6_main_c_main____RRX|
 #line 683
-|__asm___6_main_c_gtest____RRX| PROC
+|__asm___6_main_c_main____RRX| PROC
 #line 684
 
  rrx r0, r0

@@ -1,14 +1,14 @@
 /*******************************************
-* æ–‡ä»¶å: upgrade_tool.c
-* åŠŸèƒ½: å‡çº§å·¥è£…é¡¶å±‚çŠ¶æ€æœºå®ç°
-* è¯´æ˜: çŠ¶æ€æµè½¬ (å«è¶…æ—¶/é‡è¯•ç­–ç•¥è§ tool_config.h):
-*   LISTEN --å¿ƒè·³ç‰ˆæœ¬ä½--> EXT_SESSION -> UNLOCK_APP -> JUMP_BOOT
-*     -> WAIT_BOOT(ç­‰71 01) -> PROG_SESSION -> UNLOCK_BOOT
+* ÎÄ¼şÃû: upgrade_tool.c
+* ¹¦ÄÜ: Éı¼¶¹¤×°¶¥²ã×´Ì¬»úÊµÏÖ
+* ËµÃ÷: ×´Ì¬Á÷×ª (º¬³¬Ê±/ÖØÊÔ²ßÂÔ¼û tool_config.h):
+*   LISTEN --ĞÄÌø°æ±¾µÍ--> EXT_SESSION -> UNLOCK_APP -> JUMP_BOOT
+*     -> WAIT_BOOT(µÈ71 01) -> PROG_SESSION -> UNLOCK_BOOT
 *     -> DL_REQ -> TRANSFER(36xN) -> EXIT -> ECU_RESET
-*     -> (51 01 ç›´æ¥åº”ç­”: ç«‹å³ DONE | é™é»˜: WAIT_5101 ç­‰è¡¥å‘ 51 01) -> DONE
-*     -> DONE_DELAY(é™é»˜3s, ä¸¢å¼ƒæ®‹ç•™å¿ƒè·³) -> LISTEN
-*   ä»»æ„æ­¥å¤±è´¥: æ•´æµç¨‹ä»å¤´é‡è¯• TOOL_FLOW_RETRY_MAX æ¬¡, ä»å¤±è´¥è¿›å…¥ ERROR åœæœº
-*   NRC 0x33: è‡ªåŠ¨é‡æ–°æ‰§è¡Œ 27 è§£é”, æˆåŠŸåå›åˆ°å¤±è´¥æ­¥éª¤é‡å‘
+*     -> (51 01 Ö±½ÓÓ¦´ğ: Á¢¼´ DONE | ¾²Ä¬: WAIT_5101 µÈ²¹·¢ 51 01) -> DONE
+*     -> DONE_DELAY(¾²Ä¬3s, ¶ªÆú²ĞÁôĞÄÌø) -> LISTEN
+*   ÈÎÒâ²½Ê§°Ü: ÕûÁ÷³Ì´ÓÍ·ÖØÊÔ TOOL_FLOW_RETRY_MAX ´Î, ÈÔÊ§°Ü½øÈë ERROR Í£»ú
+*   NRC 0x33: ×Ô¶¯ÖØĞÂÖ´ĞĞ 27 ½âËø, ³É¹¦ºó»Øµ½Ê§°Ü²½ÖèÖØ·¢
 *******************************************/
 #include "upgrade_tool.h"
 #include "uds_tester.h"
@@ -19,7 +19,7 @@
 #include "TickTimer.h"
 #include <string.h>
 
-/* [TOOL] è¡Œé¦–å¸¦ [ç§’.æ¯«ç§’] æ—¶é—´æˆ³ (ä¸ [OTA] è¡Œ time= åŒæº: tickTimer) */
+/* [TOOL] ĞĞÊ×´ø [Ãë.ºÁÃë] Ê±¼ä´Á (Óë [OTA] ĞĞ time= Í¬Ô´: tickTimer) */
 #ifndef TOOL_T
 #define TOOL_T(fmt, ...) \
     do { uint64_t _tm = tickTimer_GetCount(); \
@@ -45,70 +45,70 @@
                 (unsigned)(_tm / 1000U), (unsigned)(_tm % 1000U), ##__VA_ARGS__); } while (0)
 #endif
 
-/***************************** å†…éƒ¨çŠ¶æ€ ***********************************/
+/***************************** ÄÚ²¿×´Ì¬ ***********************************/
 
 typedef enum {
-    TOOL_ST_LISTEN = 0,     /* ç›‘å¬å¿ƒè·³, æ¯”å¯¹ç‰ˆæœ¬ */
+    TOOL_ST_LISTEN = 0,     /* ¼àÌıĞÄÌø, ±È¶Ô°æ±¾ */
     TOOL_ST_EXT_SESSION,    /* 10 03 */
-    TOOL_ST_UNLOCK_APP,     /* 27 01/02 (APP ä¸Šä¸‹æ–‡) */
-    TOOL_ST_JUMP_BOOT,      /* 31 01 (äº§å“é™é»˜å¤ä½, ç­‰è¶…æ—¶è§†ä¸ºæ­£å¸¸) */
-    TOOL_ST_WAIT_BOOT,      /* ç­‰ boot è¡¥å‘ 71 01 FF 00 */
+    TOOL_ST_UNLOCK_APP,     /* 27 01/02 (APP ÉÏÏÂÎÄ) */
+    TOOL_ST_JUMP_BOOT,      /* 31 01 (²úÆ·¾²Ä¬¸´Î», µÈ³¬Ê±ÊÓÎªÕı³£) */
+    TOOL_ST_WAIT_BOOT,      /* µÈ boot ²¹·¢ 71 01 FF 00 */
     TOOL_ST_PROG_SESSION,   /* 10 02 */
-    TOOL_ST_UNLOCK_BOOT,    /* 27 01/02 (boot ä¸Šä¸‹æ–‡) */
+    TOOL_ST_UNLOCK_BOOT,    /* 27 01/02 (boot ÉÏÏÂÎÄ) */
     TOOL_ST_DL_REQ,         /* 34 */
     TOOL_ST_TRANSFER,       /* 36 x N */
     TOOL_ST_EXIT,           /* 37 */
-    TOOL_ST_ECU_RESET,      /* 11 01 (é™é»˜å¤ä½) */
-    TOOL_ST_WAIT_5101,      /* ç­‰ APP è¡¥å‘ 51 01 */
-    TOOL_ST_DONE_DELAY,     /* å‡çº§æˆåŠŸåé™é»˜æœŸ: ç­‰æ–° APP å¿ƒè·³ç¨³å®šå†æ¢å¤ç‰ˆæœ¬åˆ¤æ–­ */
-    TOOL_ST_RETRY_DELAY,    /* æ•´æµç¨‹é‡è¯•å‰å»¶è¿Ÿ */
-    TOOL_ST_ERROR,          /* é”™è¯¯åœæœº */
+    TOOL_ST_ECU_RESET,      /* 11 01 (¾²Ä¬¸´Î») */
+    TOOL_ST_WAIT_5101,      /* µÈ APP ²¹·¢ 51 01 */
+    TOOL_ST_DONE_DELAY,     /* Éı¼¶³É¹¦ºó¾²Ä¬ÆÚ: µÈĞÂ APP ĞÄÌøÎÈ¶¨ÔÙ»Ö¸´°æ±¾ÅĞ¶Ï */
+    TOOL_ST_RETRY_DELAY,    /* ÕûÁ÷³ÌÖØÊÔÇ°ÑÓ³Ù */
+    TOOL_ST_ERROR,          /* ´íÎóÍ£»ú */
 } tool_state_t;
 
 static tool_state_t s_state = TOOL_ST_LISTEN;
 
-/* è¯·æ±‚å‘é€æ ‡è®°: æ¯æ¬¡è¿›å…¥çŠ¶æ€ç½® 0, å‘é€åç½® 1 */
+/* ÇëÇó·¢ËÍ±ê¼Ç: Ã¿´Î½øÈë×´Ì¬ÖÃ 0, ·¢ËÍºóÖÃ 1 */
 static uint8_t s_req_sent = 0;
 
-/* å®‰å…¨è§£é”å­æ­¥éª¤: 0=è¯·æ±‚ç§å­, 1=å‘é€å¯†é’¥ */
+/* °²È«½âËø×Ó²½Öè: 0=ÇëÇóÖÖ×Ó, 1=·¢ËÍÃÜÔ¿ */
 static uint8_t s_unlock_sub = 0;
 
-/* å®‰å…¨è§£é”ç§å­ (27 01 å“åº”) */
+/* °²È«½âËøÖÖ×Ó (27 01 ÏìÓ¦) */
 static uint8_t s_seed[4];
 
-/* 0x33 æ¢å¤: è§£é”å®Œæˆåå›åˆ°çš„çŠ¶æ€ */
+/* 0x33 »Ö¸´: ½âËøÍê³Éºó»Øµ½µÄ×´Ì¬ */
 static tool_state_t s_resume_state = TOOL_ST_LISTEN;
-static uint8_t s_in_boot = 0;           /* äº§å“æ˜¯å¦å·²è¿›å…¥ boot é˜¶æ®µ */
+static uint8_t s_in_boot = 0;           /* ²úÆ·ÊÇ·ñÒÑ½øÈë boot ½×¶Î */
 
-/* ä¼ è¾“è¿›åº¦ */
-static uint32_t s_blk_offset = 0;       /* å·²å‘é€å­—èŠ‚æ•° */
+/* ´«Êä½ø¶È */
+static uint32_t s_blk_offset = 0;       /* ÒÑ·¢ËÍ×Ö½ÚÊı */
 static uint8_t  s_blk_seq = TOOL_DL_SEQ_FIRST;
 static uint8_t  s_blk_retry = 0;
-static uint16_t s_blk_len = 0;          /* å½“å‰å—é•¿åº¦ */
+static uint16_t s_blk_len = 0;          /* µ±Ç°¿é³¤¶È */
 
-/* æµç¨‹çº§é‡è¯• */
+/* Á÷³Ì¼¶ÖØÊÔ */
 static uint8_t  s_flow_retry = 0;
 
-/* å¿ƒè·³ */
+/* ĞÄÌø */
 static volatile uint8_t s_hb_flag = 0;
-static volatile uint32_t s_hb_ver = 0;  /* å¿ƒè·³ç‰ˆæœ¬æŠ˜ç®—å€¼ MMMMmmmm (0002.2000 -> 22000) */
-static uint8_t s_hb_cnt = 0;            /* è¿ç»­ä¸€è‡´å¿ƒè·³å¸§è®¡æ•° */
-static uint32_t s_hb_last = 0xFFFFFFFFUL; /* ä¸Šä¸€å¸§å¿ƒè·³ç‰ˆæœ¬ (MAX=æ— å†å², é¿å…ä¸çœŸå®ç‰ˆæœ¬æ’è½¦) */
+static volatile uint32_t s_hb_ver = 0;  /* ĞÄÌø°æ±¾ÕÛËãÖµ MMMMmmmm (0002.2000 -> 22000) */
+static uint8_t s_hb_cnt = 0;            /* Á¬ĞøÒ»ÖÂĞÄÌøÖ¡¼ÆÊı */
+static uint32_t s_hb_last = 0xFFFFFFFFUL; /* ÉÏÒ»Ö¡ĞÄÌø°æ±¾ (MAX=ÎŞÀúÊ·, ±ÜÃâÓëÕæÊµ°æ±¾×²³µ) */
 
-/* æ­¥éª¤ä¸ŠæŠ¥ */
-static uint8_t s_rpt_step = 0xFFU;      /* ä¸Šæ¬¡ä¸ŠæŠ¥å€¼ (0xFF å¼ºåˆ¶é¦–å‘) */
+/* ²½ÖèÉÏ±¨ */
+static uint8_t s_rpt_step = 0xFFU;      /* ÉÏ´ÎÉÏ±¨Öµ (0xFF Ç¿ÖÆÊ×·¢) */
 static uint8_t s_rpt_param = 0;
 static uint8_t s_rpt_detail = 0;
 
-/* éé˜»å¡å»¶æ—¶å™¨ (TickTimer æ¨¡å—) */
-static NonBlockingDelay_t s_flow_retry_tmr;  /* æ•´æµç¨‹å¤±è´¥é‡è¯•å»¶æ—¶ */
-static NonBlockingDelay_t s_stage_tmr;       /* WAIT_BOOT / WAIT_5101 é˜¶æ®µè¶…æ—¶ */
-static NonBlockingDelay_t s_poll_tmr;        /* 1ms è½®è¯¢é—¨æ§ */
-static NonBlockingDelay_t s_done_tmr;        /* å‡çº§æˆåŠŸåé™é»˜æœŸ */
+/* ·Ç×èÈûÑÓÊ±Æ÷ (TickTimer Ä£¿é) */
+static NonBlockingDelay_t s_flow_retry_tmr;  /* ÕûÁ÷³ÌÊ§°ÜÖØÊÔÑÓÊ± */
+static NonBlockingDelay_t s_stage_tmr;       /* WAIT_BOOT / WAIT_5101 ½×¶Î³¬Ê± */
+static NonBlockingDelay_t s_poll_tmr;        /* 1ms ÂÖÑ¯ÃÅ¿Ø */
+static NonBlockingDelay_t s_done_tmr;        /* Éı¼¶³É¹¦ºó¾²Ä¬ÆÚ */
 
-/***************************** æ­¥éª¤ä¸ŠæŠ¥ ***********************************/
+/***************************** ²½ÖèÉÏ±¨ ***********************************/
 
-/* å‘é€ä¸€å¸§æ­¥éª¤ä¸ŠæŠ¥ (0x18FF1109: byte0=æ­¥éª¤, byte1=å‚æ•°, byte2=ç»†èŠ‚) */
+/* ·¢ËÍÒ»Ö¡²½ÖèÉÏ±¨ (0x18FF1109: byte0=²½Öè, byte1=²ÎÊı, byte2=Ï¸½Ú) */
 static void status_send(void)
 {
     CanMsg_t msg;
@@ -132,11 +132,11 @@ static void status_send(void)
           s_rpt_step, s_rpt_param, s_rpt_detail, s_rpt_step, s_rpt_param, s_rpt_detail);
 }
 
-/* æ›´æ–°æ­¥éª¤ç : å†…å®¹å˜åŒ–æ—¶å‘é€ä¸€æ¬¡, ä¸å˜ä¸é‡å‘ */
+/* ¸üĞÂ²½ÖèÂë: ÄÚÈİ±ä»¯Ê±·¢ËÍÒ»´Î, ²»±ä²»ÖØ·¢ */
 static void status_report(uint8_t step, uint8_t param, uint8_t detail)
 {
     if ((step == s_rpt_step) && (param == s_rpt_param) && (detail == s_rpt_detail)) {
-        return;                     /* ä¸ä¸Šæ¬¡ä¸ŠæŠ¥ç›¸åŒ, ä¸é‡å‘ */
+        return;                     /* ÓëÉÏ´ÎÉÏ±¨ÏàÍ¬, ²»ÖØ·¢ */
     }
     s_rpt_step = step;
     s_rpt_param = param;
@@ -144,35 +144,35 @@ static void status_report(uint8_t step, uint8_t param, uint8_t detail)
     status_send();
 }
 
-/***************************** å¿ƒè·³æ¥æ”¶ ***********************************/
+/***************************** ĞÄÌø½ÓÊÕ ***********************************/
 
 static void Hb_RxCallback(const CanMsg_t *msg)
 {
     if ((msg != NULL) && (msg->u8DLC >= 8U)) {
-        /* å¿ƒè·³å¸§ 1s ä¸€æ¡, æ‰“å°é‡å¤ªå¤§ä¸”ä¼šæŒ¤æ‰ RTT å…¶ä»–æ—¥å¿—, ä¸æ‰“å° */
-        /* ç‰ˆæœ¬å¸ƒå±€ç”±äº§å“ build_can_1108 å®šæ­»: byte[0..3]=ä¸»ç‰ˆæœ¬4ä½åè¿›åˆ¶, byte[4..7]=æ¬¡ç‰ˆæœ¬4ä½åè¿›åˆ¶ */
+        /* ĞÄÌøÖ¡ 1s Ò»Ìõ, ´òÓ¡Á¿Ì«´óÇÒ»á¼·µô RTT ÆäËûÈÕÖ¾, ²»´òÓ¡ */
+        /* °æ±¾²¼¾ÖÓÉ²úÆ· build_can_1108 ¶¨ËÀ: byte[0..3]=Ö÷°æ±¾4Î»Ê®½øÖÆ, byte[4..7]=´Î°æ±¾4Î»Ê®½øÖÆ */
         const uint8_t *d = msg->au8Data;
         uint32_t major = ((uint32_t)d[0] * 1000U) + ((uint32_t)d[1] * 100U)
                        + ((uint32_t)d[2] * 10U) + d[3];
         uint32_t minor = ((uint32_t)d[4] * 1000U) + ((uint32_t)d[5] * 100U)
                        + ((uint32_t)d[6] * 10U) + d[7];
 
-        /* æŠ˜ç®—ä¸º 8 ä½åè¿›åˆ¶æ•°å€¼: 0002.2000 -> 22000, ç›´æ¥æ•°å€¼æ¯”è¾ƒ */
+        /* ÕÛËãÎª 8 Î»Ê®½øÖÆÊıÖµ: 0002.2000 -> 22000, Ö±½ÓÊıÖµ±È½Ï */
         s_hb_ver = (major * 10000U) + minor;
         s_hb_flag = 1U;
     }
 }
 
-/***************************** å†…éƒ¨è¾…åŠ© ***********************************/
+/***************************** ÄÚ²¿¸¨Öú ***********************************/
 
-/* çŠ¶æ€åˆ‡æ¢ */
+/* ×´Ì¬ÇĞ»» */
 static void goto_state(tool_state_t st)
 {
     s_state = st;
     s_req_sent = 0;
-    s_unlock_sub = 0;       /* æ¯æ¬¡è¿›å…¥æ–°çŠ¶æ€éƒ½ä» 27 01 é‡æ–°å¼€å§‹è§£é”æµç¨‹ */
+    s_unlock_sub = 0;       /* Ã¿´Î½øÈëĞÂ×´Ì¬¶¼´Ó 27 01 ÖØĞÂ¿ªÊ¼½âËøÁ÷³Ì */
 
-    /* é˜¶æ®µè¶…æ—¶: æŒ‰ç›®æ ‡çŠ¶æ€é…ç½® */
+    /* ½×¶Î³¬Ê±: °´Ä¿±ê×´Ì¬ÅäÖÃ */
     switch (st) {
         case TOOL_ST_WAIT_BOOT:
             nbDelay_SetTime(&s_stage_tmr, TOOL_TIMEOUT_BOOT_READY_MS);
@@ -186,7 +186,7 @@ static void goto_state(tool_state_t st)
             nbDelay_Start(&s_done_tmr);
             break;
         case TOOL_ST_LISTEN:
-            s_hb_cnt = 0U;          /* æ¯æ¬¡è¿›å…¥ç›‘å¬éƒ½é‡æ–°ç´¯è®¡è¿ç»­ä¸€è‡´å¿ƒè·³ */
+            s_hb_cnt = 0U;          /* Ã¿´Î½øÈë¼àÌı¶¼ÖØĞÂÀÛ¼ÆÁ¬ĞøÒ»ÖÂĞÄÌø */
             s_hb_last = 0xFFFFFFFFUL;
             nbDelay_Stop(&s_stage_tmr);
             break;
@@ -196,7 +196,7 @@ static void goto_state(tool_state_t st)
     }
 }
 
-/* NRC 0x33 æ¢å¤: å›åˆ°è§£é”æ­¥éª¤, æˆåŠŸåå›åˆ° resume_state é‡å‘è¯·æ±‚ */
+/* NRC 0x33 »Ö¸´: »Øµ½½âËø²½Öè, ³É¹¦ºó»Øµ½ resume_state ÖØ·¢ÇëÇó */
 static void security_resume(tool_state_t failed_state)
 {
     TOOL_W("Security unlock then resume step %d", (int)failed_state);
@@ -205,7 +205,7 @@ static void security_resume(tool_state_t failed_state)
     goto_state(s_in_boot ? TOOL_ST_UNLOCK_BOOT : TOOL_ST_UNLOCK_APP);
 }
 
-/* æ•´æµç¨‹å¤±è´¥å¤„ç†: é‡è¯•æˆ–åœæœº */
+/* ÕûÁ÷³ÌÊ§°Ü´¦Àí: ÖØÊÔ»òÍ£»ú */
 static void flow_fail(uint8_t err_code, uint8_t detail)
 {
     UdsTester_ResetTxn();
@@ -223,7 +223,7 @@ static void flow_fail(uint8_t err_code, uint8_t detail)
     }
 }
 
-/* æ£€æŸ¥éåº”ç­”æŠ¥æ–‡ (71 01 FF 00 / 51 01) */
+/* ¼ì²é·ÇÓ¦´ğ±¨ÎÄ (71 01 FF 00 / 51 01) */
 static uint8_t unsolicited_sid(void)
 {
     uint8_t buf[16];
@@ -238,17 +238,17 @@ static uint8_t unsolicited_sid(void)
     return buf[0];
 }
 
-/***************************** çŠ¶æ€å¤„ç† ***********************************/
+/***************************** ×´Ì¬´¦Àí ***********************************/
 
 static void st_listen(void)
 {
     if (s_hb_flag != 0U) {
-        uint32_t ver = s_hb_ver;    /* å¿«ç…§, é¿å…åˆ¤æ–­æœŸé—´è¢«æ–°å¿ƒè·³æ”¹å†™ */
+        uint32_t ver = s_hb_ver;    /* ¿ìÕÕ, ±ÜÃâÅĞ¶ÏÆÚ¼ä±»ĞÂĞÄÌø¸ÄĞ´ */
         uint32_t mj;
 
         s_hb_flag = 0U;
-        /* ç‰ˆæœ¬é˜²æŠ–: è¿ç»­ TOOL_HB_CONFIRM_CNT å¸§ç‰ˆæœ¬ä¸€è‡´æ‰åˆ¤å®šå¯ä¿¡,
-         * é˜²æ­¢å‡çº§åæ–°æ—§å¿ƒè·³äº¤æ›¿/å¼‚å¸¸å¸§å¯¼è‡´è¯¯è§¦å‘ç¬¬äºŒè½® */
+        /* °æ±¾·À¶¶: Á¬Ğø TOOL_HB_CONFIRM_CNT Ö¡°æ±¾Ò»ÖÂ²ÅÅĞ¶¨¿ÉĞÅ,
+         * ·ÀÖ¹Éı¼¶ºóĞÂ¾ÉĞÄÌø½»Ìæ/Òì³£Ö¡µ¼ÖÂÎó´¥·¢µÚ¶şÂÖ */
         if (ver == s_hb_last) {
             if (s_hb_cnt < TOOL_HB_CONFIRM_CNT) {
                 s_hb_cnt++;
@@ -258,24 +258,24 @@ static void st_listen(void)
             s_hb_cnt = 1U;
         }
         if (s_hb_cnt < TOOL_HB_CONFIRM_CNT) {
-            return;                     /* ç¡®è®¤å¸§æ•°ä¸è¶³, ç‰ˆæœ¬æœªå®š, ä¸åˆ¤æ–­ */
+            return;                     /* È·ÈÏÖ¡Êı²»×ã, °æ±¾Î´¶¨, ²»ÅĞ¶Ï */
         }
         if (TOOL_FW_VERSION_NUM > ver) {
             mj = ver / 10000U;
             TOOL_I("Upgrade triggered: product ver=%04d.%04d < tool ver=%04d.%04d (hb x%d)",
                    (int)mj, (int)(ver % 10000U),
                    (int)TOOL_FW_VER_MAJOR, (int)TOOL_FW_VER_MINOR, (int)s_hb_cnt);
-            /* çŠ¶æ€å¸§ byte[1] ä»… 1 å­—èŠ‚: ä¸ŠæŠ¥ä¸»ç‰ˆæœ¬ä½2ä½BCD (0002.x->0x02, 0017.x->0x17) */
+            /* ×´Ì¬Ö¡ byte[1] ½ö 1 ×Ö½Ú: ÉÏ±¨Ö÷°æ±¾µÍ2Î»BCD (0002.x->0x02, 0017.x->0x17) */
             status_report(TOOL_STEP_VERSION_OK,
                           (uint8_t)(((mj / 10U) % 10U) * 16U + (mj % 10U)), 0U);
             s_in_boot = 0;
-            /* æ³¨æ„: s_flow_retry ä¸åœ¨æ­¤æ¸…é›¶, ä¿è¯æ•´æµç¨‹å¤±è´¥ x2 åçœŸæ­£åœæœº */
+            /* ×¢Òâ: s_flow_retry ²»ÔÚ´ËÇåÁã, ±£Ö¤ÕûÁ÷³ÌÊ§°Ü x2 ºóÕæÕıÍ£»ú */
             goto_state(TOOL_ST_EXT_SESSION);
         }
     }
 }
 
-/* å®‰å…¨è§£é” (APP / boot å…±ç”¨) */
+/* °²È«½âËø (APP / boot ¹²ÓÃ) */
 static void st_unlock(void)
 {
     tool_txn_state_t txn = UdsTester_TxnState();
@@ -295,7 +295,7 @@ static void st_unlock(void)
         UdsTester_ResetTxn();
         resp = UdsTester_TxnResp(&resp_len);
         if (s_unlock_sub == 0U) {
-            /* 67 01 è´Ÿè½½: {01 s1 s2 s3 s4} */
+            /* 67 01 ¸ºÔØ: {01 s1 s2 s3 s4} */
             if (resp_len >= 5U) {
                 memcpy(s_seed, &resp[1], 4);
                 s_unlock_sub = 1U;
@@ -308,7 +308,7 @@ static void st_unlock(void)
             if (s_state == TOOL_ST_UNLOCK_APP) {
                 goto_state(TOOL_ST_JUMP_BOOT);
             } else {
-                /* è§£é”å®Œæˆ: å›åˆ° 0x33 æ¢å¤ç‚¹æˆ–æ­£å¸¸ä¸‹ä¸€æ­¥ */
+                /* ½âËøÍê³É: »Øµ½ 0x33 »Ö¸´µã»òÕı³£ÏÂÒ»²½ */
                 if (s_resume_state != TOOL_ST_LISTEN) {
                     tool_state_t resume = s_resume_state;
                     s_resume_state = TOOL_ST_LISTEN;
@@ -373,7 +373,7 @@ static void st_jump_boot(void)
     }
 
     if (txn == TOOL_TXN_OK) {
-        /* è‚¯å®šå“åº” (71 01 FF 00, è´Ÿè½½åœ¨ SID ä¹‹å) = boot å·²å°±ç»ª, ç›´æ¥è¿›å…¥ç¼–ç¨‹ä¼šè¯ */
+        /* ¿Ï¶¨ÏìÓ¦ (71 01 FF 00, ¸ºÔØÔÚ SID Ö®ºó) = boot ÒÑ¾ÍĞ÷, Ö±½Ó½øÈë±à³Ì»á»° */
         UdsTester_ResetTxn();
         s_in_boot = 1U;
         status_report(TOOL_STEP_PROG_SESSION, 0U, 0U);
@@ -382,7 +382,7 @@ static void st_jump_boot(void)
         tool_txn_err_t err = UdsTester_TxnError();
         UdsTester_ResetTxn();
         if (err == TOOL_TXN_ERR_TIMEOUT) {
-            /* é¢„æœŸè¡Œä¸º: äº§å“é™é»˜å¤ä½ */
+            /* Ô¤ÆÚĞĞÎª: ²úÆ·¾²Ä¬¸´Î» */
             TOOL_I("No resp to 31 01 (expected), product resetting...");
             s_in_boot = 1U;
             goto_state(TOOL_ST_WAIT_BOOT);
@@ -406,7 +406,7 @@ static void st_wait_boot(void)
         return;
     }
 
-    /* s_stage_tmr åœ¨ goto_state è¿›å…¥ WAIT_BOOT æ—¶å¯åŠ¨ */
+    /* s_stage_tmr ÔÚ goto_state ½øÈë WAIT_BOOT Ê±Æô¶¯ */
     if (nbDelay_IsComplete(&s_stage_tmr)) {
         flow_fail(TOOL_ERR_BOOT_READY_TIMEOUT, 0U);
     }
@@ -454,7 +454,7 @@ static void st_dl_req(void)
     if (txn == TOOL_TXN_OK) {
         UdsTester_ResetTxn();
         resp = UdsTester_TxnResp(&resp_len);
-        /* 74 è´Ÿè½½: {maxBlockSizeHi, maxBlockSizeLo} */
+        /* 74 ¸ºÔØ: {maxBlockSizeHi, maxBlockSizeLo} */
         if (resp_len >= 2U) {
             TOOL_I("Download accepted, max block size=%d", (int)(((uint16_t)resp[0] << 8) | resp[1]));
         }
@@ -503,7 +503,7 @@ static void st_transfer(void)
             TOOL_I("All %d bytes transferred", (int)TOOL_FW_SIZE);
             goto_state(TOOL_ST_EXIT);
         } else {
-            /* å—åºå·å›ç»•: 0xFF -> 1 (è·Ÿéšäº§å“ç«¯è§„åˆ™) */
+            /* ¿éĞòºÅ»ØÈÆ: 0xFF -> 1 (¸úËæ²úÆ·¶Ë¹æÔò) */
             s_blk_seq = (s_blk_seq >= TOOL_DL_SEQ_WRAP) ? TOOL_DL_SEQ_FIRST : (uint8_t)(s_blk_seq + 1U);
             s_req_sent = 0;
         }
@@ -569,8 +569,8 @@ static void st_ecu_reset(void)
     }
 
     if (txn == TOOL_TXN_OK) {
-        /* UdsTester å·²æ ¡éªŒè‚¯å®šå“åº” SID = è¯·æ±‚SID + 0x40, æ•… 11 01 çš„ TXN_OK
-         * å³ä»£è¡¨ 51 01 å¤ä½ ACK å·²åˆ°: ç«‹å³åˆ¤æˆåŠŸ, ä¸å†è¿› WAIT_5101 ç™½ç­‰ 15s */
+        /* UdsTester ÒÑĞ£Ñé¿Ï¶¨ÏìÓ¦ SID = ÇëÇóSID + 0x40, ¹Ê 11 01 µÄ TXN_OK
+         * ¼´´ú±í 51 01 ¸´Î» ACK ÒÑµ½: Á¢¼´ÅĞ³É¹¦, ²»ÔÙ½ø WAIT_5101 °×µÈ 15s */
         UdsTester_ResetTxn();
         TOOL_I("51 01 received as 11 01 resp, upgrade done");
         status_report(TOOL_STEP_DONE, 100U, 0U);
@@ -581,7 +581,7 @@ static void st_ecu_reset(void)
         tool_txn_err_t err = UdsTester_TxnError();
         UdsTester_ResetTxn();
         if (err == TOOL_TXN_ERR_TIMEOUT) {
-            /* é¢„æœŸè¡Œä¸º: äº§å“é™é»˜å¤ä½ */
+            /* Ô¤ÆÚĞĞÎª: ²úÆ·¾²Ä¬¸´Î» */
             TOOL_I("No resp to 11 01 (expected), product resetting...");
             goto_state(TOOL_ST_WAIT_5101);
         } else {
@@ -602,9 +602,9 @@ static void st_wait_5101(void)
         return;
     }
 
-    /* s_stage_tmr åœ¨ goto_state è¿›å…¥ WAIT_5101 æ—¶å¯åŠ¨ */
+    /* s_stage_tmr ÔÚ goto_state ½øÈë WAIT_5101 Ê±Æô¶¯ */
     if (nbDelay_IsComplete(&s_stage_tmr)) {
-        /* å…œåº•: è‹¥å¿ƒè·³æ˜¾ç¤ºç‰ˆæœ¬å·²æ›´æ–°, åŒæ ·è§†ä¸ºæˆåŠŸ */
+        /* ¶µµ×: ÈôĞÄÌøÏÔÊ¾°æ±¾ÒÑ¸üĞÂ, Í¬ÑùÊÓÎª³É¹¦ */
         if ((s_hb_flag != 0U) && (s_hb_ver >= TOOL_FW_VERSION_NUM)) {
             s_hb_flag = 0U;
             TOOL_I("51 01 missed but heartbeat ver=%04d.%04d, upgrade done",
@@ -619,12 +619,12 @@ static void st_wait_5101(void)
     }
 }
 
-/* å‡çº§æˆåŠŸåé™é»˜æœŸ: ä¸¢å¼ƒå‡çº§å‰æ®‹ç•™å¿ƒè·³, ç­‰æ–° APP å¿ƒè·³ç¨³å®šåå†æ¢å¤ç‰ˆæœ¬åˆ¤æ–­ */
+/* Éı¼¶³É¹¦ºó¾²Ä¬ÆÚ: ¶ªÆúÉı¼¶Ç°²ĞÁôĞÄÌø, µÈĞÂ APP ĞÄÌøÎÈ¶¨ºóÔÙ»Ö¸´°æ±¾ÅĞ¶Ï */
 static void st_done_delay(void)
 {
     if (nbDelay_IsComplete(&s_done_tmr)) {
         TOOL_I("Settle %d ms done, resume listening", (int)TOOL_DONE_SETTLE_MS);
-        s_hb_flag = 0U;         /* ä¸¢å¼ƒæ®‹ç•™/åœ¨é€”å¿ƒè·³, åªè®¤é™é»˜æœŸç»“æŸåæ”¶åˆ°çš„å¿ƒè·³ */
+        s_hb_flag = 0U;         /* ¶ªÆú²ĞÁô/ÔÚÍ¾ĞÄÌø, Ö»ÈÏ¾²Ä¬ÆÚ½áÊøºóÊÕµ½µÄĞÄÌø */
         status_report(TOOL_STEP_IDLE, 0U, 0U);
         goto_state(TOOL_ST_LISTEN);
     }
@@ -639,7 +639,7 @@ static void st_retry_delay(void)
     }
 }
 
-/***************************** å…¬å¼€æ¥å£å®ç° *******************************/
+/***************************** ¹«¿ª½Ó¿ÚÊµÏÖ *******************************/
 
 void Tool_Init(void)
 {
@@ -647,14 +647,14 @@ void Tool_Init(void)
 
     UdsTester_Init();
 
-    /* UDS å“åº” ID -> ISO-TP é‡ç»„ + äº‹åŠ¡è§£æ */
+    /* UDS ÏìÓ¦ ID -> ISO-TP ÖØ×é + ÊÂÎñ½âÎö */
     entry.u32CanId = TOOL_CANID_UDS_RESPONSE;
     entry.u32CanMask = 0UL;
     entry.u8Format = CAN_ID_EXT;
     entry.pfnCallback = &UdsTester_OnCanRx;
     (void)CanIf_RegisterRxFilter(&entry);
 
-    /* äº§å“å¿ƒè·³ ID -> ç‰ˆæœ¬ç›‘å¬ */
+    /* ²úÆ·ĞÄÌø ID -> °æ±¾¼àÌı */
     entry.u32CanId = TOOL_CANID_HEARTBEAT;
     entry.pfnCallback = &Hb_RxCallback;
     (void)CanIf_RegisterRxFilter(&entry);
@@ -675,7 +675,7 @@ void Tool_Poll(void)
     CanIf_Poll();
     UdsTester_Poll();
 
-    /* 1ms é—¨æ§ä»»åŠ¡ */
+    /* 1ms ÃÅ¿ØÈÎÎñ */
     if (nbDelay_IsComplete_noclose(&s_poll_tmr)) {
         nbDelay_Start(&s_poll_tmr);
         isotp_ms_update();
@@ -697,7 +697,7 @@ void Tool_Poll(void)
         case TOOL_ST_WAIT_5101:    st_wait_5101();    break;
         case TOOL_ST_DONE_DELAY:   st_done_delay();   break;
         case TOOL_ST_RETRY_DELAY:  st_retry_delay();  break;
-        case TOOL_ST_ERROR:        /* åœæœº, ä¿æŒæœ€åä¸ŠæŠ¥å€¼ */ break;
+        case TOOL_ST_ERROR:        /* Í£»ú, ±£³Ö×îºóÉÏ±¨Öµ */ break;
         default:                   goto_state(TOOL_ST_LISTEN); break;
     }
 }

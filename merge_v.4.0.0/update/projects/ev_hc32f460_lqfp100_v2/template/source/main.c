@@ -20,7 +20,7 @@
 
 
   /*=============================================================================
-   * ȫ��PWMʵ�������������ʹ�ã�????
+   * ?  PWM?             ? ? ????
    *=============================================================================*/
   pwm_t g_motor_pwm_ch1;  // PB6
   pwm_t g_motor_pwm_ch2;  // PB7
@@ -28,95 +28,95 @@
   pwm_t g_motor_pwm_ch4;  // PB9
 
   /*=============================================================================
-   * ��������
+   *         
    *=============================================================================*/
   static void Motor_Pwm_Init(void);
 
   /*=============================================================================
-   * ��ʼ����������õ�PWM��4��ͨ����ȫ������Ч��
+   *   ?          ? PWM  4  ?    ?      ��  
    *=============================================================================*/
   static void Motor_Pwm_Init(void)
   {
-      // ����������?4��ͨ��ȫ������Ч������תͨ��ռ�ձȷ���ʵ�֣�
-      // Ƶ�ʣ�20kHz����ʼռ�ձȣ�0%
+      //           ?4  ?  ?      ��      ??  ? ??   ? ? 
+      // ? ? 20kHz    ?? ?? 0%
 
-      // ����GPIO���裨�����޸�GPIO�������ã�
+      //     GPIO   ��     ? GPIO       ? 
       LL_PERIPH_WE(LL_PERIPH_GPIO);
 
-      // CH1: PB6 - ����Ч
+      // CH1: PB6 -     ��
       g_motor_pwm_ch1 = PWM_Init(CM_TMRA_4, FCG2_PERIPH_TMRA_4, TMRA_CH1,
                                   GPIO_PORT_B, GPIO_PIN_06, GPIO_FUNC_4,
                                   TMRA_MD_SAWTOOTH, TMRA_DIR_UP,
                                   6000, 0, PWM_ACTIVE_LOW);
 
-      // CH2: PB7 - ����Ч
+      // CH2: PB7 -     ��
       g_motor_pwm_ch2 = PWM_Init(CM_TMRA_4, FCG2_PERIPH_TMRA_4, TMRA_CH2,
                                   GPIO_PORT_B, GPIO_PIN_07, GPIO_FUNC_4,
                                   TMRA_MD_SAWTOOTH, TMRA_DIR_UP,
                                   6000, 0, PWM_ACTIVE_LOW);
 
-      // CH3: PB8 - ����Ч
+      // CH3: PB8 -     ��
       g_motor_pwm_ch3 = PWM_Init(CM_TMRA_4, FCG2_PERIPH_TMRA_4, TMRA_CH3,
                                   GPIO_PORT_B, GPIO_PIN_08, GPIO_FUNC_4,
                                   TMRA_MD_SAWTOOTH, TMRA_DIR_UP,
                                   6000, 0, PWM_ACTIVE_LOW);
 
-      // CH4: PB9 - ����Ч
+      // CH4: PB9 -     ��
       g_motor_pwm_ch4 = PWM_Init(CM_TMRA_4, FCG2_PERIPH_TMRA_4, TMRA_CH4,
                                   GPIO_PORT_B, GPIO_PIN_09, GPIO_FUNC_4,
                                   TMRA_MD_SAWTOOTH, TMRA_DIR_UP,
                                   6000, 0, PWM_ACTIVE_LOW);
 
-      // ����GPIO���裨������ú�������????
+      //     GPIO   ��      ��       ????
       LL_PERIPH_WP(LL_PERIPH_GPIO);
 
-      // ����FCG���裨ʹ�ܶ�ʱ��ʱ�ӣ�
+      //     FCG   ��? ? ?  ? ? 
       LL_PERIPH_WE(LL_PERIPH_FCG);
 
-      // ��������PWM��ʱ��
+      //         PWM  ?  
       PWM_Start(&g_motor_pwm_ch1);
       PWM_Start(&g_motor_pwm_ch2);
       PWM_Start(&g_motor_pwm_ch3);
       PWM_Start(&g_motor_pwm_ch4);
 
-      // ʹ�����????
+      // ?     ????
       PWM_OutputCmd(&g_motor_pwm_ch1, PWM_OUTPUT_ENABLE);
       PWM_OutputCmd(&g_motor_pwm_ch2, PWM_OUTPUT_ENABLE);
       PWM_OutputCmd(&g_motor_pwm_ch3, PWM_OUTPUT_ENABLE);
       PWM_OutputCmd(&g_motor_pwm_ch4, PWM_OUTPUT_ENABLE);
 
-      // ����FCG����
+      //     FCG    
       LL_PERIPH_WP(LL_PERIPH_FCG);
 
       MAIN_D("Motor PWM initialized: 4 channels, 20kHz, low active\r\n");
   }
 
   /*=============================================================================
-   * 调试功能开�?
+   * ���Թ��ܿ� ?
    *=============================================================================*/
 
-  /* CAN 心跳包：1=开启（每秒发�? 0x12345678），0=关闭 */
+  /* CAN ��������1=������ÿ�뷢 ? 0x12345678����0=�ر� */
   #define CAN_HEARTBEAT_ENABLE       (0U)
 
-/* UDS/CAN 功能总开关：1=启用 UDS 诊断+CAN 通信�?0=仅保�? Bootloader/APP */
+/* UDS/CAN �����ܿ��أ�1=���� UDS ���+CAN ͨ�� ?0=���� ? Bootloader/APP */
 /* UDS_CAN_ENABLE moved to main.h */
 
 
   /*=============================================================================
-   * ������
+   *       
    *=============================================================================*/
 
 /*=============================================================================
- * 升级工装固件 (单一固件直接运行, 不跳转 APP)
- * 固件镜像存放在本片 0x44000 起始 168KB, 由 Keil/JFlash 单独烧录
+ * ������װ�̼� (��һ�̼�ֱ������, ����ת APP)
+ * �̼��������ڱ�Ƭ 0x44000 ��ʼ 168KB, �� Keil/JFlash ������¼
  *=============================================================================*/
-volatile int gtest = 0;
+//volatile int gtest = 0;
 int main(void)
 {
     Hardware_Init();
     MAIN_D("===== main(): UPGRADE TOOL PATH =====\r\n");
-  	while(gtest==0){}
-    /* 上电自动启动心跳监听与升级流程 */
+  	//while(gtest==0){}
+    /* �ϵ��Զ����������������������� */
     Tool_Init();
 
     {
